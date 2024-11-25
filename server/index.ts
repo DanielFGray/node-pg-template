@@ -30,7 +30,7 @@ const argonOpts = {
 const PgStore = ConnectPgSimple(session)
 const app = express()
 
-app.use(morgan('dev'))
+app.use(morgan(process.env.NODE_ENV === 'production' ? 'common' : 'dev'))
 app.use(express.urlencoded({ extended: false }))
 app.use(
   session({
