@@ -44,6 +44,7 @@
     "zapatos": "^6.4.4"
   },
   "devDependencies": {
+    "@total-typescript/tsconfig": "^1.0.4",
     "@types/connect-pg-simple": "~7.0.3",
     "@types/debug": "~4.1.12",
     "@types/eslint": "~9.6.1",
