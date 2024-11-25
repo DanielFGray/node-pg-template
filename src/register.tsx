@@ -12,7 +12,7 @@ export default function Register() {
       onSubmit={ev => {
         ev.preventDefault()
         const body = new URLSearchParams(new FormData(ev.currentTarget) as any)
-        fetch('/register', { method: 'post', body })
+        fetch('/api/register', { method: 'post', body })
           .then(res => res.json())
           .then(res => {
             if (!res.user_id) return setResponse(res)

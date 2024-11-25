@@ -13,7 +13,7 @@ export default function Login() {
       onSubmit={ev => {
         ev.preventDefault()
         const body = new URLSearchParams(new FormData(ev.currentTarget) as any)
-        fetch('/login', { method: 'post', body })
+        fetch('/api/login', { method: 'post', body })
           .then(res => res.json())
           .then(res => {
             if (!res.user_id) return setResponse(res)

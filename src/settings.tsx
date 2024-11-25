@@ -10,7 +10,7 @@ export default function Settings() {
       onSubmit={ev => {
         ev.preventDefault()
         const body = new URLSearchParams(new FormData(ev.currentTarget) as any)
-        fetch('/settings', { method: 'post', body })
+        fetch('/api/settings', { method: 'post', body })
           .then(res => res.json())
           .then(res => {
             if (res.username) {

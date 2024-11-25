@@ -9,7 +9,7 @@ export default function Logout() {
       method="POST"
       onSubmit={ev => {
         ev.preventDefault()
-        fetch('/logout', { method: 'post' })
+        fetch('/api/logout', { method: 'post' })
           .then(() => {
             auth.setUser(null)
             navigate('/')

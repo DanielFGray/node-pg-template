@@ -17,7 +17,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User>(undefined)
 
   useEffect(() => {
-    fetch('/currentUser')
+    fetch('/api/currentUser')
       .then(res => res.json())
       .then(user => setUser(user))
   }, [])
