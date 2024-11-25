@@ -1,7 +1,3 @@
--- migrate:down
-drop table posts;
-
--- migrate:up
 create table posts (
   post_id uuid primary key default gen_random_uuid(),
   user_id uuid not null references users,

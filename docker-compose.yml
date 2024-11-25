@@ -15,17 +15,5 @@ services:
     ports:
       - ${DATABASE_PORT}:5432
 
-  migrations:
-    image: amacneil/dbmate
-    command: --wait-timeout=5s --wait up
-    volumes:
-      - ./migrations:/db/migrations
-    networks:
-      - appnet
-    depends_on:
-      - db
-    environment:
-      DATABASE_URL: postgres://${DATABASE_OWNER}:${DATABASE_OWNER_PASSWORD}@db:5432/testapp?sslmode=disable
-
 networks:
   appnet:
