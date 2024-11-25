@@ -5,6 +5,7 @@ import ConnectPgSimple from 'connect-pg-simple'
 import pg from 'pg'
 import argon from 'argon2'
 import * as db from 'zapatos/db'
+import type { FormErrorResult } from '../src/types.js'
 
 declare module 'express-session' {
   interface SessionData {
@@ -56,10 +57,21 @@ const isAuthenticated: express.RequestHandler = (req, res, next) => {
 app.post('/register', (req, res) => {
   if (req.session.user) return res.redirect('/')
   const { username, password, confirmPassword } = req.body
-  if (!username) return res.status(400).json({ fieldError: { username: 'missing username' } })
-  if (!password) return res.status(400).json({ fieldError: { password: 'missing password' } })
-  if (password !== confirmPassword)
-    return res.status(400).json({ fieldError: { confirmPassword: 'passwords dont match' } })
+  if (!username) {
+    return res.status(400).json({
+      fieldErrors: { username: ['missing username'] },
+    } satisfies FormErrorResult)
+  }
+  if (!password) {
+    return res.status(400).json({
+      fieldErrors: { password: ['missing password'] },
+    } satisfies FormErrorResult)
+  }
+  if (password !== confirmPassword) {
+    return res.status(400).json({
+      fieldErrors: { confirmPassword: ['passwords dont match'] },
+    } satisfies FormErrorResult)
+  }
   req.session.regenerate(async () => {
     try {
       const password_hash = await argon.hash(password, argonOpts)
@@ -68,8 +80,16 @@ app.post('/register', (req, res) => {
         .run(pool)
       req.session.user = { user_id: user.user_id, username }
       res.json(req.session.user)
-    } catch (e) {
-      res.status(403).send({ fieldError: { username: 'username already exists' } })
+    } catch (err: any) {
+      if (db.isDatabaseError(err, 'IntegrityConstraintViolation_UniqueViolation')) {
+        return res.status(403).json({
+          fieldErrors: { username: ['username already exists'] },
+        } satisfies FormErrorResult)
+      }
+      console.error(err)
+      res.status(500).json({
+        formErrors: ['there was an error processing your request'],
+      } satisfies FormErrorResult)
     }
   })
 })
@@ -77,18 +97,33 @@ app.post('/register', (req, res) => {
 app.post('/login', (req, res) => {
   if (req.session.user) return res.redirect('/')
   const { username, password } = req.body
-  if (!username) return res.status(400).json({ fieldError: { username: 'missing username' } })
-  if (!password) return res.status(400).json({ fieldError: { password: 'missing password' } })
+  if (!username) {
+    return res.status(400).json({
+      fieldErrors: { username: ['missing username'] },
+    } satisfies FormErrorResult)
+  }
+  if (!password) {
+    return res.status(400).json({
+      fieldErrors: { password: ['missing password'] },
+    } satisfies FormErrorResult)
+  }
   req.session.regenerate(async () => {
     try {
       const user = await db.selectExactlyOne('users', { username }).run(pool)
       const matches = await argon.verify(user.password_hash, password, argonOpts)
-      if (!matches) throw new Error()
+      if (!matches) {
+        return res.status(403).json({
+          formErrors: ['invalid username or password'],
+        } satisfies FormErrorResult)
+      }
 
       req.session.user = { user_id: user.user_id, username: user.username }
       res.json(req.session.user)
     } catch (e) {
-      res.status(403).json({ formError: 'invalid username or password' })
+      console.error(e)
+      res.status(500).json({
+        formErrors: ['there was an error processing your request'],
+      } satisfies FormErrorResult)
     }
   })
 })
@@ -100,7 +135,11 @@ app.get('/currentUser', (req, res) => {
 
 app.post('/settings', isAuthenticated, async (req, res) => {
   const { username } = req.body
-  if (!username) return res.status(400).json({ fieldError: { username: 'username cannot be empty' } })
+  if (!username) {
+    return res.status(400).json({
+      fieldErrors: { username: ['username cannot be empty'] },
+    } satisfies FormErrorResult)
+  }
   try {
     const [user] = await db
       .update(
@@ -113,8 +152,11 @@ app.post('/settings', isAuthenticated, async (req, res) => {
     console.log('updated user:', user)
     req.session.user = user
     res.json(req.session.user)
-  } catch(e) {
-    res.status(500).json({ formError: 'there was an error processing your request' })
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({
+      formErrors: ['there was an error processing your request'],
+    } satisfies FormErrorResult)
   }
 })
 
