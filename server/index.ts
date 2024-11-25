@@ -27,7 +27,6 @@ const argonOpts = {
   hashLength: 40,
 }
 
-/* @ts-expect-error lib types being weird */
 const PgStore = ConnectPgSimple(session)
 const app = express()
 
@@ -44,7 +43,6 @@ app.use(
       sameSite: 'lax',
       secure: 'auto',
     },
-    /* @ts-expect-error lib types being weird */
     store: new PgStore({ pool, schemaName: 'hidden', tableName: 'sessions' }),
     secret,
   }),
