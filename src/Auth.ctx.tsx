@@ -1,20 +1,21 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 
 type User = null | { user_id: string; username: string }
+type AuthContext = {
+  user: User
+  setUser: (user: User) => void
+}
 
-const ctx = createContext<{
-  user: User,
-  setUser: (user: User) => void,
-  /* @ts-expect-error value starts as undefined */
-    }>(undefined)
+const ctx = createContext<AuthContext>(undefined)
 
 export function useAuth() {
-  return useContext(ctx)
+  const authCtx = useContext(ctx)
+  if (!authCtx) throw new Error('useAuth must be used within an AuthProvider')
+  return authCtx
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  /* @ts-expect-error value starts as undefined but is replaced with actual values */
-  const [user, setUser] = useState<User>(undefined)
+  const [user, setUser] = useState<'loading' | User>('loading')
 
   useEffect(() => {
     fetch('/api/currentUser')
@@ -23,8 +24,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   return (
-    <ctx.Provider value={{ user, setUser }}>
-      {user === undefined ? 'loading...' : children}
-    </ctx.Provider>
+    <>
+      {user === 'loading' ? (
+        'loading...'
+      ) : (
+        <ctx.Provider value={{ user, setUser }}>{children}</ctx.Provider>
+      )}
+    </>
   )
 }

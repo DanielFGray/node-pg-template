@@ -1,5 +1,5 @@
 import React from 'react'
-import ReactDOM from 'react-dom'
+import ReactDOM from 'react-dom/client'
 import { BrowserRouter as Router } from 'react-router-dom'
 import { AuthProvider } from './Auth.ctx'
 import App from './App'
@@ -15,4 +15,4 @@ const Init = (
   </React.StrictMode>
 )
 
-ReactDOM.render(Init, document.getElementById('root'))
+ReactDOM.createRoot(document.getElementById('root')).render(Init)
