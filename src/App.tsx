@@ -1,4 +1,4 @@
-import { Routes, Route, Link, useLocation, Navigate, Outlet } from 'react-router-dom'
+import { Routes, Route, Link, useLocation, Navigate, Outlet } from 'react-router'
 import { useAuth } from './Auth.ctx'
 import Login from './login'
 import Logout from './logout'
