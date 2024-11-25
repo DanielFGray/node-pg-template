@@ -1,54 +1,80 @@
+import path from 'node:path'
+import fs from 'node:fs/promises'
+import crypto from 'node:crypto'
 import dotenv from 'dotenv'
-import path from 'path'
-import fs from 'fs-extra'
-import crypto from 'crypto'
 import inquirer from 'inquirer'
-
-/** @returns {Promise<string>} the package name */
-const getPackageName = async () => JSON.parse(await fs.readFile('./package.json', 'utf8'))
-  .name.replace(/\W/g, '_')
-  .replace(/__+/g, '')
 
 const DOTENV_PATH = path.resolve('.env')
 
-/** @param {string} str database name
-  * @returns {true | string} an error string or true
-  */
-function validateDatabaseName(str) {
+/** validates database name
+ * @param {string} str database name
+ * @returns {true | string} returns true or an error
+ */
+function validName(str) {
   if (str.length < 4) return 'must be at least 4 characters'
   if (str !== str.toLowerCase()) return 'must be lowercase'
   return true
 }
 
-/** @param {number} length the length of the password
-  * @param {BufferEncoding} type the BufferEncoding type
-  * @returns {string} a random password
-  */
-function generatePassword(length, type = 'base64url') {
-  return crypto.randomBytes(length).toString(type)
+/** generates a password
+ * @param {number} length password length
+ * @param {BufferEncoding} type password encoding
+ * @returns {string} generated password
+ */
+function generatePassword(length, type = 'base64') {
+  return crypto.randomBytes(length).toString(type).replace(/\W/g, '_')
 }
 
 async function readDotenv() {
-  let buffer = null
   try {
-    buffer = await fs.readFile(DOTENV_PATH)
-  } catch (e) {
-    /* noop */
+    return dotenv.parse(await fs.readFile(DOTENV_PATH, 'utf8'))
+  } catch {
+    return null
   }
-  const config = buffer ? dotenv.parse(buffer) : {}
-  // also read from current env, because docker-compose already needs to know some of it
-  // eg. $PG_DUMP, $CONFIRM
-  return { ...config, ...process.env }
 }
 
-async function createConfig(config = {}) {
+/**
+ * @param {null | Record<string,string | undefined>} config current environment object
+ * @returns {Promise<void>} void
+ */
+async function createConfig(config) {
+  const packageJson = JSON.parse(await fs.readFile('./package.json', 'utf8'))
+  const packageName = (packageJson?.name || import.meta.dirname.split('/').at(-1))
+    .replace(/\W/g, '_')
+    .replace(/__+/g, '')
+    .replace(/^_/, '')
+
+  if (
+    config &&
+    config.AUTH_DATABASE_URL &&
+    config.DATABASE_HOST &&
+    config.DATABASE_NAME &&
+    config.DATABASE_OWNER &&
+    config.DATABASE_OWNER_PASSWORD &&
+    config.DATABASE_PORT &&
+    config.DATABASE_URL &&
+    config.NODE_ENV &&
+    config.PORT &&
+    config.ROOT_DATABASE_PASSWORD &&
+    config.ROOT_DATABASE_URL &&
+    config.ROOT_DATABASE_USER &&
+    config.VITE_ROOT_URL &&
+    config.SECRET &&
+    config.SHADOW_DATABASE_PASSWORD &&
+    config.SHADOW_DATABASE_URL
+  ) {
+    console.info('.env file untouched')
+    process.exit(0)
+  }
+
   const {
     ROOT_DATABASE_USER,
     DATABASE_HOST,
+    DATABASE_PORT,
     DATABASE_NAME,
     DATABASE_OWNER,
     PORT,
-    ...PASSWORDS
+    VITE_ROOT_URL,
   } = await inquirer.prompt(
     [
       {
@@ -58,16 +84,22 @@ async function createConfig(config = {}) {
         prefix: '',
       },
       {
+        name: 'DATABASE_PORT',
+        message: 'database port:',
+        default: '5432',
+        prefix: '',
+      },
+      {
         name: 'DATABASE_HOST',
         message: 'database host:',
-        default: 'localhost:5432',
+        default: 'localhost',
         prefix: '',
       },
       {
         name: 'DATABASE_NAME',
         message: 'database name:',
-        default: await getPackageName(),
-        validate: validateDatabaseName,
+        default: packageName,
+        validate: validName,
         prefix: '',
       },
       {
@@ -78,60 +110,97 @@ async function createConfig(config = {}) {
       },
       {
         name: 'PORT',
-        message: 'application port:',
+        message: 'server port:',
         default: '3000',
         prefix: '',
       },
       {
-        name: 'ROOT_DATABASE_PASSWORD',
-        default: () => generatePassword(18),
-        prefix: '',
-      },
-      {
-        name: 'DATABASE_OWNER_PASSWORD',
-        default: () => generatePassword(18),
-        prefix: '',
-      },
-      {
-        name: 'SECRET',
-        default: () => generatePassword(64),
+        name: 'VITE_ROOT_URL',
+        message: 'application url:',
+        default: 'http://localhost:5173',
         prefix: '',
       },
     ],
-    config,
+    Object.assign({}, config, process.env),
   )
 
-  const ROOT_DATABASE_URL = `postgres://${ROOT_DATABASE_USER}:${PASSWORDS.ROOT_DATABASE_PASSWORD}@${DATABASE_HOST}/template1`
-  const DATABASE_URL = `postgres://${DATABASE_OWNER}:${PASSWORDS.DATABASE_OWNER_PASSWORD}@${DATABASE_HOST}/${DATABASE_NAME}`
+  let PASSWORDS = {
+    ROOT_DATABASE_PASSWORD: config?.ROOT_DATABASE_PASSWORD,
+    DATABASE_OWNER_PASSWORD: config?.DATABASE_OWNER_PASSWORD,
+    SHADOW_DATABASE_PASSWORD: config?.SHADOW_DATABASE_PASSWORD,
+    SECRET: config?.SECRET,
+  }
 
-  const envFile = `NODE_ENV=development
-ROOT_DATABASE_USER=${ROOT_DATABASE_USER}
-ROOT_DATABASE_PASSWORD=${PASSWORDS.ROOT_DATABASE_PASSWORD}
-ROOT_DATABASE_URL=${ROOT_DATABASE_URL}
-DATABASE_HOST=${DATABASE_HOST}
-DATABASE_NAME=${DATABASE_NAME}
-DATABASE_OWNER=${DATABASE_OWNER}
-DATABASE_OWNER_PASSWORD=${PASSWORDS.DATABASE_OWNER_PASSWORD}
-DATABASE_URL=${DATABASE_URL}
-SECRET=${PASSWORDS.SECRET}
-PORT=${PORT}
-PGUSER=${ROOT_DATABASE_USER}
-PGPASSWORD=${PASSWORDS.ROOT_DATABASE_PASSWORD}
-PGHOST=${DATABASE_HOST}
-PGDATABASE=${DATABASE_NAME}
-`
+  if (!Object.values(PASSWORDS).every(Boolean)) {
+    PASSWORDS = (
+      await inquirer.prompt({
+        name: 'genpwd',
+        message: 'auto-generate passwords?',
+        type: 'confirm',
+        prefix: '',
+      })
+    ).genpwd
+      ? {
+          ROOT_DATABASE_PASSWORD: config?.ROOT_DATABASE_PASSWORD ?? generatePassword(18),
+          DATABASE_OWNER_PASSWORD: config?.DATABASE_OWNER_PASSWORD ?? generatePassword(18),
+          SHADOW_DATABASE_PASSWORD: config?.SHADOW_DATABASE_PASSWORD ?? generatePassword(18),
+          SECRET: config?.SECRET ?? generatePassword(32),
+        }
+      : await inquirer.prompt(
+          [
+            {
+              name: 'ROOT_DATABASE_PASSWORD',
+              default: () => generatePassword(18),
+              prefix: '',
+            },
+            {
+              name: 'DATABASE_OWNER_PASSWORD',
+              default: () => generatePassword(18),
+              prefix: '',
+            },
+            {
+              name: 'SHADOW_DATABASE_PASSWORD',
+              default: () => generatePassword(18),
+              prefix: '',
+            },
+            {
+              name: 'SECRET (used for signing tokens)',
+              default: () => generatePassword(32),
+              prefix: '',
+            },
+          ],
+          PASSWORDS,
+        )
+  }
+
+  const envFile = Object.entries({
+    ...config,
+    NODE_ENV: 'development',
+    ROOT_DATABASE_USER: ROOT_DATABASE_USER,
+    ROOT_DATABASE_PASSWORD: PASSWORDS.ROOT_DATABASE_PASSWORD,
+    ROOT_DATABASE_URL: `postgres://${ROOT_DATABASE_USER}:${PASSWORDS.ROOT_DATABASE_PASSWORD}@${DATABASE_HOST}:${DATABASE_PORT}/template1`,
+    DATABASE_HOST: DATABASE_HOST,
+    DATABASE_PORT: DATABASE_PORT,
+    DATABASE_NAME: DATABASE_NAME,
+    DATABASE_OWNER: DATABASE_OWNER,
+    DATABASE_OWNER_PASSWORD: PASSWORDS.DATABASE_OWNER_PASSWORD,
+    DATABASE_URL: `postgres://${DATABASE_OWNER}:${PASSWORDS.DATABASE_OWNER_PASSWORD}@${DATABASE_HOST}:${DATABASE_PORT}/${DATABASE_NAME}`,
+    SHADOW_DATABASE_PASSWORD: PASSWORDS.SHADOW_DATABASE_PASSWORD,
+    SHADOW_DATABASE_URL: `postgres://${DATABASE_NAME}_shadow:${PASSWORDS.SHADOW_DATABASE_PASSWORD}@${DATABASE_HOST}:${DATABASE_PORT}/${DATABASE_NAME}`,
+    SECRET: PASSWORDS.SECRET,
+    PORT,
+    VITE_ROOT_URL,
+  })
+    .map(([k, v]) => `${k}=${v}`)
+    .join('\n')
+    .concat('\n')
+
   await fs.writeFile(DOTENV_PATH, envFile, 'utf8')
-  console.log('.env file updated')
+  console.log(`.env file ${config ? 'updated' : 'created'}`)
 }
 
 async function main() {
-  try {
-    const config = await readDotenv()
-    await fs.stat('.env')
-    createConfig(config)
-  } catch (e) {
-    createConfig()
-  }
+  createConfig(await readDotenv())
 }
 
 main()

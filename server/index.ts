@@ -14,7 +14,7 @@ declare module 'express-session' {
 
 const MILLISECONDS = 1000
 const DAY = 86400
-const PORT = Number(process.env.SERVER_PORT) || 3001
+const PORT = Number(process.env.PORT) || 3001
 const secret = process.env.SECRET
 
 if (!process.env.DATABASE_URL) throw new Error('Missing DATABASE_URL environment variable')
