@@ -9,11 +9,10 @@ export default function Logout() {
       method="POST"
       onSubmit={ev => {
         ev.preventDefault()
-        fetch('/api/logout', { method: 'post' })
-          .then(() => {
-            auth.setUser(null)
-            navigate('/')
-          })
+        fetch('/api/logout', { method: 'post' }).then(() => {
+          auth.setUser(null)
+          navigate('/')
+        })
       }}
     >
       <fieldset>
