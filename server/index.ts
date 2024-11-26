@@ -9,6 +9,8 @@ import _debug from 'debug'
 import type { FormErrorResult } from '../src/types.js'
 import { randomNumber } from '../lib/index.js'
 import { setTimeout } from 'node:timers/promises'
+import './assertEnv.js'
+import { z } from 'zod'
 
 declare module 'express-session' {
   interface SessionData {
@@ -73,22 +75,16 @@ const isAuthenticated: express.RequestHandler = (req, res, next) => {
 
 app.post('/register', (req, res) => {
   if (req.session.user) return res.redirect('/')
-  const { username, password, confirmPassword } = req.body
-  if (!username) {
-    return res.status(400).json({
-      fieldErrors: { username: ['missing username'] },
-    } satisfies FormErrorResult)
-  }
-  if (!password) {
-    return res.status(400).json({
-      fieldErrors: { password: ['missing password'] },
-    } satisfies FormErrorResult)
-  }
-  if (password !== confirmPassword) {
-    return res.status(400).json({
-      fieldErrors: { confirmPassword: ['passwords dont match'] },
-    } satisfies FormErrorResult)
-  }
+  const result = z
+    .object({
+      username: z.string(),
+      password: z.string(),
+      confirmPassword: z.string(),
+    })
+    .refine(data => data.password === data.confirmPassword, 'passwords must match')
+    .safeParse(req.body)
+  if (result.success === false) return res.status(400).json(result.error.flatten(i => i.message))
+  const { username, password } = result.data
   req.session.regenerate(async () => {
     try {
       const password_hash = await argon.hash(password, argonOpts)
@@ -114,17 +110,14 @@ app.post('/register', (req, res) => {
 
 app.post('/login', (req, res) => {
   if (req.session.user) return res.redirect('/')
-  const { username, password } = req.body
-  if (!username) {
-    return res.status(400).json({
-      fieldErrors: { username: ['missing username'] },
-    } satisfies FormErrorResult)
-  }
-  if (!password) {
-    return res.status(400).json({
-      fieldErrors: { password: ['missing password'] },
-    } satisfies FormErrorResult)
-  }
+  const result = z
+    .object({
+      username: z.string(),
+      password: z.string(),
+    })
+    .safeParse(req.body)
+  if (result.success === false) return res.status(400).json(result.error.flatten())
+  const { username, password } = result.data
   req.session.regenerate(async () => {
     try {
       const [user] = await db.select('users', { username }).run(pool)
@@ -159,12 +152,17 @@ app.get('/currentUser', (req, res) => {
 })
 
 app.post('/settings', isAuthenticated, async (req, res) => {
-  const { username } = req.body
-  if (!username) {
-    return res.status(400).json({
-      fieldErrors: { username: ['username cannot be empty'] },
-    } satisfies FormErrorResult)
-  }
+  const result = z
+    .object({
+      username: z.string(),
+      oldPassword: z.string(),
+      newPassword: z.string(),
+      avatar: z.string(),
+    })
+    .partial()
+    .safeParse(req.body)
+  if (result.success === false) return res.status(400).json(result.error.flatten())
+  const { username, oldPassword, newPassword, avatar } = result.data
   try {
     const [user] = await db
       .update(
