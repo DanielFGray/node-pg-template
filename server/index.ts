@@ -5,6 +5,7 @@ import ConnectPgSimple from 'connect-pg-simple'
 import pg from 'pg'
 import argon from 'argon2'
 import * as db from 'zapatos/db'
+import _debug from 'debug'
 import type { FormErrorResult } from '../src/types.js'
 
 declare module 'express-session' {
@@ -20,6 +21,20 @@ const secret = process.env.SECRET
 
 if (!process.env.DATABASE_URL) throw new Error('Missing DATABASE_URL environment variable')
 if (!secret) throw new Error('Missing SECRET environment variable')
+
+const debug = _debug('app')
+const queryDebug = debug.extend('db:query')
+const resultDebug = debug.extend('db:result')
+const txnDebug = debug.extend('db:transaction')
+const strFromTxnId = (txnId: number | undefined) => (txnId === undefined ? '-' : String(txnId))
+
+db.setConfig({
+  queryListener: (query, txnId) =>
+    queryDebug('(%s) %s\n%o', strFromTxnId(txnId), query.text, query.values),
+  resultListener: (result, txnId, elapsedMs) =>
+    resultDebug('(%s, %dms) %O', strFromTxnId(txnId), elapsedMs?.toFixed(1), result),
+  transactionListener: (message, txnId) => txnDebug('(%s) %s', strFromTxnId(txnId), message),
+})
 
 const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL })
 
@@ -79,6 +94,7 @@ app.post('/register', (req, res) => {
         .insert('users', { username, password_hash }, { returning: ['user_id'] })
         .run(pool)
       req.session.user = { user_id: user.user_id, username }
+      debug('new user:', username)
       res.json(req.session.user)
     } catch (err: any) {
       if (db.isDatabaseError(err, 'IntegrityConstraintViolation_UniqueViolation')) {
@@ -149,7 +165,7 @@ app.post('/settings', isAuthenticated, async (req, res) => {
         { returning: ['user_id', 'username'] },
       )
       .run(pool)
-    console.log('updated user:', user)
+    debug('updated user:', user)
     req.session.user = user
     res.json(req.session.user)
   } catch (e) {
