@@ -7,6 +7,8 @@ import argon from 'argon2'
 import * as db from 'zapatos/db'
 import _debug from 'debug'
 import type { FormErrorResult } from '../src/types.js'
+import { randomNumber } from '../lib/index.js'
+import { setTimeout } from 'node:timers/promises'
 
 declare module 'express-session' {
   interface SessionData {
@@ -127,12 +129,14 @@ app.post('/login', (req, res) => {
     try {
       const [user] = await db.select('users', { username }).run(pool)
       if (!user) {
+        await setTimeout(randomNumber(100, 400))
         return res.status(403).json({
           formErrors: ['invalid username or password'],
         } satisfies FormErrorResult)
       }
       const matches = await argon.verify(user?.password_hash, password, argonOpts)
       if (!matches) {
+        await setTimeout(randomNumber(100, 400))
         return res.status(403).json({
           formErrors: ['invalid username or password'],
         } satisfies FormErrorResult)
