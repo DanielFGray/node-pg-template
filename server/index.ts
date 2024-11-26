@@ -125,8 +125,13 @@ app.post('/login', (req, res) => {
   }
   req.session.regenerate(async () => {
     try {
-      const user = await db.selectExactlyOne('users', { username }).run(pool)
-      const matches = await argon.verify(user.password_hash, password, argonOpts)
+      const [user] = await db.select('users', { username }).run(pool)
+      if (!user) {
+        return res.status(403).json({
+          formErrors: ['invalid username or password'],
+        } satisfies FormErrorResult)
+      }
+      const matches = await argon.verify(user?.password_hash, password, argonOpts)
       if (!matches) {
         return res.status(403).json({
           formErrors: ['invalid username or password'],
