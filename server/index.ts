@@ -73,12 +73,20 @@ const isAuthenticated: express.RequestHandler = (req, res, next) => {
   res.status(403).end('you must be logged in to do that!')
 }
 
+const zusername = z.string()
+  .refine(n => n.length >= 3, 'username must be at least 3 characters')
+
+const zpassword = z
+  .string()
+  .refine(pw => /\W/.test(pw), 'password must contain a number or symbol')
+  .refine(pw => pw.length >= 6, 'password must be at least 6 characters')
+
 app.post('/register', (req, res) => {
   if (req.session.user) return res.redirect('/')
   const result = z
     .object({
-      username: z.string(),
-      password: z.string(),
+      username: zusername,
+      password: zpassword,
       confirmPassword: z.string(),
     })
     .refine(data => data.password === data.confirmPassword, 'passwords must match')
@@ -154,9 +162,9 @@ app.get('/currentUser', (req, res) => {
 app.post('/settings', isAuthenticated, async (req, res) => {
   const result = z
     .object({
-      username: z.string(),
+      username: zusername,
       oldPassword: z.string(),
-      newPassword: z.string(),
+      newPassword: zpassword,
       avatar: z.string(),
     })
     .partial()
