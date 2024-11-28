@@ -159,7 +159,7 @@ app.get('/currentUser', (req, res) => {
   res.json(req.session.user)
 })
 
-app.post('/settings', isAuthenticated, async (req, res) => {
+app.post('/settings/profile', isAuthenticated, async (req, res) => {
   const result = z
     .object({
       username: zusername,
@@ -170,7 +170,7 @@ app.post('/settings', isAuthenticated, async (req, res) => {
     .partial()
     .safeParse(req.body)
   if (result.success === false) return res.status(400).json(result.error.flatten())
-  const { username, oldPassword, newPassword, avatar } = result.data
+  const { username, avatar } = result.data
   try {
     const [user] = await db
       .update(
@@ -183,6 +183,52 @@ app.post('/settings', isAuthenticated, async (req, res) => {
     debug('updated user:', user)
     req.session.user = user
     res.json(req.session.user)
+  } catch (err: any) {
+    if (db.isDatabaseError(err, 'IntegrityConstraintViolation_UniqueViolation')) {
+      return res.status(403).json({
+        fieldErrors: { username: ['username already exists'] },
+      } satisfies FormErrorResult)
+    }
+    console.error(err)
+    res.status(500).json({
+      formErrors: ['there was an error processing your request'],
+    } satisfies FormErrorResult)
+  }
+})
+
+app.post('/settings/password', isAuthenticated, async (req, res) => {
+  const result = z
+    .object({
+      oldPassword: z.string(),
+      newPassword: zpassword,
+      confirmPassword: z.string(),
+    })
+    .refine(
+      data => !data.newPassword || (data.newPassword && data.oldPassword),
+      'old and new passwords are required',
+    )
+    .refine(data => data.newPassword === data.confirmPassword, 'passwords must match')
+    .safeParse(req.body)
+  if (result.success === false) return res.status(400).json(result.error.flatten())
+  const { oldPassword, newPassword } = result.data
+  try {
+    const user = await db
+      .selectExactlyOne('users', { user_id: req.session.user!.user_id })
+      .run(pool)
+    if ((await argon.verify(user.password_hash, oldPassword, argonOpts)) === false) {
+      return res.status(403).json({
+        formErrors: ['invalid old password'],
+      } satisfies FormErrorResult)
+    }
+    await db
+      .update(
+        'users',
+        { password_hash: await argon.hash(newPassword, argonOpts) },
+        { user_id: req.session.user!.user_id },
+      )
+      .run(pool)
+    debug('updated user:', req.session.user?.user_id)
+    res.json({ formMessages: ['password updated'] } satisfies FormErrorResult)
   } catch (e) {
     console.error(e)
     res.status(500).json({
