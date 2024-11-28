@@ -32,9 +32,11 @@ export default function Settings() {
             name="username"
             id="settings-username-input"
             defaultValue={auth.user.username}
+            aria-describedby="settings-username-help"
+            aria-invalid={Boolean(response?.fieldErrors?.username)}
           />
           {response?.fieldErrors?.username?.map(e => (
-            <div key={e} className="field-error">
+            <div key={e} className="field-error" id="settings-username-help">
               {e}
             </div>
           ))}

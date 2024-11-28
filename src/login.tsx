@@ -30,9 +30,15 @@ export default function Login() {
         )}
         <div className="form-row">
           <label htmlFor="login-username-input">username:</label>
-          <input type="text" name="username" id="login-username-input" />
+          <input
+            type="text"
+            name="username"
+            id="login-username-input"
+            aria-describedby="login-username-help"
+            aria-invalid={Boolean(response?.fieldErrors?.username)}
+          />
           {response?.fieldErrors?.username?.map(e => (
-            <div className="field-error" key={e}>
+            <div className="field-error" key={e} id="login-username-help">
               {e}
             </div>
           ))}
@@ -40,9 +46,15 @@ export default function Login() {
 
         <div className="form-row">
           <label htmlFor="login-password-input">password:</label>
-          <input type="password" name="password" id="login-password-input" />
+          <input
+            type="password"
+            name="password"
+            id="login-password-input"
+            aria-describedby="login-password-help"
+            aria-invalid={Boolean(response?.fieldErrors?.password)}
+          />
           {response?.fieldErrors?.password?.map(e => (
-            <div className="field-error" key={e}>
+            <div className="field-error" key={e} id="login-password-help">
               {e}
             </div>
           ))}

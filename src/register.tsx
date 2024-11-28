@@ -27,9 +27,16 @@ export default function Register() {
 
         <div className="form-row">
           <label htmlFor="register-username-input">username:</label>
-          <input type="text" name="username" id="register-username-input" />
+          <input
+            type="text"
+            name="username"
+            id="register-username-input"
+            autoComplete="username"
+            aria-describedby="register-username-help"
+            aria-invalid={Boolean(response?.fieldErrors?.username)}
+          />
           {response?.fieldErrors?.username?.map(e => (
-            <div className="field-error" key={e}>
+            <div className="field-error" key={e} id="register-username-help">
               {e}
             </div>
           ))}
@@ -37,9 +44,16 @@ export default function Register() {
 
         <div className="form-row">
           <label htmlFor="register-password-input">password:</label>
-          <input type="password" name="password" id="register-password-input" />
+          <input
+            type="password"
+            name="password"
+            id="register-password-input"
+            autoComplete="new-password"
+            aria-describedby="register-password-help"
+            aria-invalid={Boolean(response?.fieldErrors?.password)}
+          />
           {response?.fieldErrors?.password?.map(e => (
-            <div className="field-error" key={e}>
+            <div className="field-error" key={e} id="register-password-help">
               {e}
             </div>
           ))}
@@ -47,9 +61,16 @@ export default function Register() {
 
         <div className="form-row">
           <label htmlFor="register-confirmpassword-input">confirm password:</label>
-          <input type="password" name="confirmPassword" id="register-confirmpassword-input" />
+          <input
+            type="password"
+            name="confirmPassword"
+            id="register-confirmpassword-input"
+            autoComplete="new-password"
+            aria-describedby="register-confirmpassword-help"
+            aria-invalid={Boolean(response?.fieldErrors?.confirmPassword)}
+          />
           {response?.fieldErrors?.confirmPassword?.map(e => (
-            <div className="field-error" key={e}>
+            <div className="field-error" key={e} id="register-confirmpassword-help">
               {e}
             </div>
           ))}
