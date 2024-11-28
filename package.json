@@ -2,6 +2,11 @@
   "name": "@danielfgray/session",
   "version": "0.1.0",
   "main": "index.js",
+  "imports": {
+    "#server/*": "./server/*",
+    "#lib/*": "./lib/*",
+    "#app/*": "./src/*"
+  },
   "scripts": {
     "server:dev": "bun server/index.ts",
     "client:dev": "vite dev --clearScreen=false --open",
