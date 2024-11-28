@@ -15,7 +15,7 @@ export default function Settings() {
           .then(res => res.json())
           .then(res => {
             if (res.username) {
-              setResponse(undefined)
+              setResponse({ formMessages: ['updated'] })
               return auth.setUser(res)
             }
             setResponse(res)
@@ -42,6 +42,11 @@ export default function Settings() {
           ))}
         </div>
         <div>
+          {response?.formMessages?.map(e => (
+            <div key={e} className="field-message">
+              {e}
+            </div>
+          ))}
           {response?.formErrors?.map(e => (
             <div key={e} className="field-error">
               {e}

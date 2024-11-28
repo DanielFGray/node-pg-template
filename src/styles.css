@@ -63,6 +63,12 @@ fieldset {
   grid-column: span 2 / span 2;
 }
 
+form .field-message {
+  font-weight: 600;
+  color: green;
+  grid-column: span 3 / span 3;
+}
+
 form .field-error {
   font-weight: 600;
   color: red;
