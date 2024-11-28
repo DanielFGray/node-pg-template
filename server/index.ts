@@ -73,20 +73,23 @@ const isAuthenticated: express.RequestHandler = (req, res, next) => {
   res.status(403).end('you must be logged in to do that!')
 }
 
-const zusername = z.string()
-  .refine(n => n.length >= 3, 'username must be at least 3 characters')
-
-const zpassword = z
+const usernameSpec = z
   .string()
-  .refine(pw => /\W/.test(pw), 'password must contain a number or symbol')
-  .refine(pw => pw.length >= 6, 'password must be at least 6 characters')
+  // .refine(n => /^\w+$/, 'username may only contain numbers, letters, and underscores')
+  // this is also enforced in the database but this gives nicer error messages
+  .refine(n => n.length >= 3 && n.length <= 64, 'username must be between 3 and 64 characters')
+
+const passwordSpec = z
+  .string()
+  // .refine(pw => /\W/.test(pw), 'password must contain a number or symbol')
+  .refine(pw => pw.length >= 8, 'password must be at least 6 characters')
 
 app.post('/register', (req, res) => {
   if (req.session.user) return res.redirect('/')
   const result = z
     .object({
-      username: zusername,
-      password: zpassword,
+      username: usernameSpec,
+      password: passwordSpec,
       confirmPassword: z.string(),
     })
     .refine(data => data.password === data.confirmPassword, 'passwords must match')
@@ -162,9 +165,7 @@ app.get('/currentUser', (req, res) => {
 app.post('/settings/profile', isAuthenticated, async (req, res) => {
   const result = z
     .object({
-      username: zusername,
-      oldPassword: z.string(),
-      newPassword: zpassword,
+      username: usernameSpec,
       avatar: z.string(),
     })
     .partial()
@@ -200,7 +201,7 @@ app.post('/settings/password', isAuthenticated, async (req, res) => {
   const result = z
     .object({
       oldPassword: z.string(),
-      newPassword: zpassword,
+      newPassword: passwordSpec,
       confirmPassword: z.string(),
     })
     .refine(
