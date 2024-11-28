@@ -33,20 +33,18 @@ export default function Settings() {
             id="settings-username-input"
             defaultValue={auth.user.username}
           />
-          {response?.fieldErrors?.username &&
-            response.fieldErrors.username.map(e => (
-              <div className="field-error" key={e}>
-                {e}
-              </div>
-            ))}
+          {response?.fieldErrors?.username?.map(e => (
+            <div key={e} className="field-error">
+              {e}
+            </div>
+          ))}
         </div>
         <div>
-          {response?.formErrors &&
-            response.formErrors.map(e => (
-              <div className="field-error" key={e}>
-                {e}
-              </div>
-            ))}
+          {response?.formErrors?.map(e => (
+            <div key={e} className="field-error">
+              {e}
+            </div>
+          ))}
           <button type="submit">update</button>
         </div>
       </fieldset>

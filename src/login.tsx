@@ -31,23 +31,21 @@ export default function Login() {
         <div className="form-row">
           <label htmlFor="login-username-input">username:</label>
           <input type="text" name="username" id="login-username-input" />
-          {response?.fieldErrors?.username &&
-            response.fieldErrors.username.map(e => (
-              <div className="field-error" key={e}>
-                {e}
-              </div>
-            ))}
+          {response?.fieldErrors?.username?.map(e => (
+            <div className="field-error" key={e}>
+              {e}
+            </div>
+          ))}
         </div>
 
         <div className="form-row">
           <label htmlFor="login-password-input">password:</label>
           <input type="password" name="password" id="login-password-input" />
-          {response?.fieldErrors?.password &&
-            response.fieldErrors.password.map(e => (
-              <div className="field-error" key={e}>
-                {e}
-              </div>
-            ))}
+          {response?.fieldErrors?.password?.map(e => (
+            <div className="field-error" key={e}>
+              {e}
+            </div>
+          ))}
         </div>
 
         <div>

@@ -28,43 +28,39 @@ export default function Register() {
         <div className="form-row">
           <label htmlFor="register-username-input">username:</label>
           <input type="text" name="username" id="register-username-input" />
-          {response?.fieldErrors?.username &&
-            response.fieldErrors.username.map(e => (
-              <div className="field-error" key={e}>
-                {e}
-              </div>
-            ))}
+          {response?.fieldErrors?.username?.map(e => (
+            <div className="field-error" key={e}>
+              {e}
+            </div>
+          ))}
         </div>
 
         <div className="form-row">
           <label htmlFor="register-password-input">password:</label>
           <input type="password" name="password" id="register-password-input" />
-          {response?.fieldErrors?.password &&
-            response.fieldErrors.password.map(e => (
-              <div className="field-error" key={e}>
-                {e}
-              </div>
-            ))}
+          {response?.fieldErrors?.password?.map(e => (
+            <div className="field-error" key={e}>
+              {e}
+            </div>
+          ))}
         </div>
 
         <div className="form-row">
           <label htmlFor="register-confirmpassword-input">confirm password:</label>
           <input type="password" name="confirmPassword" id="register-confirmpassword-input" />
-          {response?.fieldErrors?.confirmPassword &&
-            response.fieldErrors.confirmPassword.map(e => (
-              <div className="field-error" key={e}>
-                {e}
-              </div>
-            ))}
+          {response?.fieldErrors?.confirmPassword?.map(e => (
+            <div className="field-error" key={e}>
+              {e}
+            </div>
+          ))}
         </div>
 
         <div>
-          {response?.formErrors &&
-            response.formErrors.map(e => (
-              <div className="field-error" key={e}>
-                {e}
-              </div>
-            ))}
+          {response?.formErrors?.map(e => (
+            <div className="field-error" key={e}>
+              {e}
+            </div>
+          ))}
           <button type="submit">register</button>
         </div>
       </fieldset>
