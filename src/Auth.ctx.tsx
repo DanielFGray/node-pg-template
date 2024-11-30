@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react'
+import { api } from './api.js'
 
 type User = null | { user_id: string; username: string }
 type AuthContext = {
@@ -18,9 +19,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<'loading' | User>('loading')
 
   useEffect(() => {
-    fetch('/api/currentUser')
-      .then(res => res.json())
-      .then(user => setUser(user))
+    api('/currentUser').then(({ data }) => setUser(data))
   }, [])
 
   return (
