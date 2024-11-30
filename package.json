@@ -30,7 +30,11 @@
     "db:init": "run-s db:up db:setup db:reset db:latest db:types",
     "predev": "run-s -s db:ensure",
     "init": "NOCONFIRM=1 run-s env:init db:init",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "vitest": "node --env-file=.env ./node_modules/.bin/vitest",
+    "test:units": "run-s -s 'vitest run'",
+    "test:units:watch": "run-s -s 'vitest run --watch'",
+    "test:dev": "run-s test:units:watch",
+    "test": "run-s test:units"
   },
   "keywords": [],
   "author": "DanielFGray <DanielFGray@gmail.com>",
@@ -82,7 +86,8 @@
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.7.2",
-    "vite": "^5.4.11"
+    "vite": "^5.4.11",
+    "vitest": "^2.1.6"
   },
   "browserslist": {
     "production": [
