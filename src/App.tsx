@@ -1,9 +1,9 @@
 import { Routes, Route, Link, useLocation, Navigate, Outlet } from 'react-router'
-import { useAuth } from './Auth.ctx'
-import Login from './login'
-import Logout from './logout'
-import Register from './register'
-import Settings from './settings'
+import { useAuth } from './Auth.ctx.js'
+import Login from './login.js'
+import Logout from './logout.js'
+import Register from './register.js'
+import Settings from './settings.js'
 
 function Layout({ children }: { children: React.ReactNode }) {
   const { user } = useAuth()

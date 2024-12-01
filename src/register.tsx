@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
-import { useAuth } from './Auth.ctx'
+import { useAuth } from './Auth.ctx.js'
 import type { FormErrorResult } from './types.js'
 
 export default function Register() {

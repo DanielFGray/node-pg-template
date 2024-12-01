@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { useAuth } from './Auth.ctx'
+import { useAuth } from './Auth.ctx.js'
 import type { FormErrorResult } from './types.js'
+import { api } from './api.js'
 
 export default function Settings() {
   return (
@@ -20,8 +21,7 @@ export function ProfileSettings() {
       onSubmit={ev => {
         ev.preventDefault()
         const body = new URLSearchParams(new FormData(ev.currentTarget) as any)
-        fetch('/api/settings/profile', { method: 'post', body })
-          .then(res => res.json())
+        api('/api/settings/profile', { method: 'post', body })
           .then(res => {
             if (res.username) {
               setResponse({ formMessages: ['updated'] })
@@ -76,9 +76,8 @@ export function PasswordSettings() {
       onSubmit={ev => {
         ev.preventDefault()
         const body = new URLSearchParams(new FormData(ev.currentTarget) as any)
-        fetch('/api/settings/password', { method: 'post', body })
-          .then(res => res.json())
-          .then(res => setResponse(res))
+        api('/api/settings/password', { method: 'post', body })
+          .then(res => setResponse(res.data))
       }}
     >
       <fieldset>

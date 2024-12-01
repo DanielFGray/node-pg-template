@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router'
-import { useAuth } from './Auth.ctx'
+import { useAuth } from './Auth.ctx.js'
 
 export default function Logout() {
   const navigate = useNavigate()
