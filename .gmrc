@@ -87,7 +87,7 @@
     {
       "_": "command",
       "shadow": false,
-      "command": "DATABASE_URL=$GM_DBURL node ./node_modules/.bin/zapatos"
+      "command": "DATABASE_URL=$GM_DBURL run-s db:types"
     }
   ],
 

@@ -3,9 +3,10 @@ import morgan from 'morgan'
 import session from 'express-session'
 import ConnectPgSimple from 'connect-pg-simple'
 import pg from 'pg'
-import * as db from 'zapatos/db'
+import { Kysely, PostgresDialect, sql, type Transaction } from 'kysely'
+import type { DB } from 'kysely-codegen'
 import Debug from 'debug'
-import type { FormResult, User } from '#app/types.js'
+import type { FormResult, Session, User } from '#app/types.js'
 import { randomNumber } from '#lib/index.js'
 import { setTimeout } from 'node:timers/promises'
 import { env } from './assertEnv.js'
@@ -15,8 +16,10 @@ import { parseCookies, serializeCookie } from 'oslo/cookie'
 
 declare module 'express-session' {
   interface SessionData {
-    user_id?: string | null
-    uuid?: string | null
+    user?: null | {
+      user_id: string
+      session_id: string
+    }
   }
 }
 
@@ -41,33 +44,40 @@ const log = {
   db: {
     query: dbDebug.extend('query'),
     result: dbDebug.extend('result'),
-    txn: dbDebug.extend('transaction'),
   },
 }
 
-const strFromTxnId = (txnId: number | undefined) => (txnId === undefined ? '-' : String(txnId))
-db.setConfig({
-  queryListener: (query, txnId) => {
-    log.db.query('(%s) %s', strFromTxnId(txnId), query.text)
+const rootPool = new pg.Pool({ connectionString: DATABASE_URL })
+const rootDb = new Kysely<DB>({
+  dialect: new PostgresDialect({ pool: rootPool }),
+  log(event) {
+    log.db.query(event.query.sql)
+    if (event.level === 'error') log.db.result(event.query.parameters)
   },
-  resultListener: (result, txnId, elapsedMs) =>
-    log.db.result('(%s, %dms) %O', strFromTxnId(txnId), elapsedMs?.toFixed(1), result),
-  transactionListener: (message, txnId) => log.db.txn('(%s) %s', strFromTxnId(txnId), message),
 })
 
-const rootPool = new pg.Pool({ connectionString: DATABASE_URL })
-const authPool = new pg.Pool({ connectionString: AUTH_DATABASE_URL })
+/** bigint */
+const int8TypeId = 20
+pg.types.setTypeParser(int8TypeId, val => {
+  return BigInt(val)
+})
 
-async function withAuthContext<R>(
-  req: express.Request,
-  cb: (sql: db.TxnClientForSerializable) => R,
-) {
-  return db.serializable(authPool, async tx => {
-    await db.sql`
+const authPool = new pg.Pool({ connectionString: AUTH_DATABASE_URL })
+const authDb = new Kysely<DB>({
+  dialect: new PostgresDialect({ pool: authPool }),
+  log(event) {
+    log.db.query(event.query.sql)
+  },
+})
+
+async function withAuthContext<R>(req: express.Request, cb: (sql: Transaction<DB>) => R) {
+  const sid = req.session.user?.session_id ?? null
+  return authDb.transaction().execute(async tx => {
+    await sql`
       select
-        set_config('role', ${db.param(DATABASE_VISITOR)}, false),
-        set_config('jwt.claims.session_id', ${db.param(req.session.uuid ?? '')}, true);
-    `.run(tx)
+        set_config('role', ${DATABASE_VISITOR}, false),
+        set_config('jwt.claims.session_id', ${sid}, true);
+    `.execute(tx)
     return cb(tx)
   })
 }
@@ -92,6 +102,7 @@ const PgStore = ConnectPgSimple(session)
 const app = express()
   .use(morgan(NODE_ENV === 'production' ? 'common' : 'dev'))
   .use(express.urlencoded({ extended: false }))
+
   .use(
     session({
       rolling: true,
@@ -127,31 +138,33 @@ const app = express()
     const { username, password, email } = body.data
     req.session.regenerate(async () => {
       try {
-        const [user] = await db.sql<db.SQL, User[]>`
-        select u.* from app_private.really_create_user(
-          username => ${db.param(username)}::citext,
-          email => ${db.param(email)}::citext,
-          email_is_verified => false,
-          name => null,
-          avatar_url => null,
-          password => ${db.param(password)}::text
-        ) u
-        where not (u is null);
-      `.run(rootPool)
-        if (!user?.id) {
-          log.error('%O', user)
-          throw new Error('failed to create/return user')
-        }
-        const session = await db.insert('app_private.sessions', { user_id: user.id }).run(rootPool)
-        req.session.uuid = session.uuid
-        req.session.user_id = user.id
+        const user = await rootDb
+          .selectFrom(
+            sql<User>`
+              app_private.really_create_user(
+                username => ${username}::citext,
+                email => ${email}::citext,
+                email_is_verified => false,
+                name => null,
+                avatar_url => null,
+                password => ${password}::text
+              )`.as('u'),
+          )
+          .selectAll()
+          .executeTakeFirstOrThrow()
+        const session = await rootDb
+          .insertInto('app_private.sessions')
+          .values({ user_id: user.id })
+          .returningAll()
+          .executeTakeFirstOrThrow()
+        req.session.user = { session_id: session.uuid, user_id: user.id }
         log.info('new user:', user.username)
         res.format({
           json: () => res.json({ payload: user } satisfies FormResult),
           html: () => res.redirect(VITE_ROOT_URL + decodeURIComponent(req.query.redirectTo ?? '/')),
         })
       } catch (err: any) {
-        if (db.isDatabaseError(err, 'IntegrityConstraintViolation_UniqueViolation')) {
+        if (err.code === '23505') {
           return res.status(401).json({
             fieldErrors: { username: ['username already exists'] },
           } satisfies FormResult)
@@ -170,23 +183,25 @@ const app = express()
     const { id, password } = body.data
     req.session.regenerate(async () => {
       try {
-        const [session] = await db.sql`
-        select u.*
-        from app_private.login(
-          ${db.param(id)}::citext,
-          ${db.param(password)}
-        ) u
-        where not (u is null)
-      `.run(rootPool)
+        const {
+          rows: [session],
+        } = await sql<Session>`
+          select u.* from app_private.login(
+            ${id}::citext,
+            ${password}
+          ) u
+          where not (u is null)
+        `.execute(rootDb)
         if (!session) {
           await setTimeout(randomNumber(100, 400))
           return res.status(401).json({
             formErrors: ['invalid username or password'],
           } satisfies FormResult)
         }
-
-        req.session.uuid = session.uuid
-        req.session.user_id = session.user_id
+        req.session.user = {
+          session_id: session.uuid,
+          user_id: session.user_id,
+        }
         res.json({ payload: session.user_id } satisfies FormResult)
       } catch (err) {
         log.error('%O', err)
@@ -198,9 +213,11 @@ const app = express()
   })
 
   .get('/settings', async (req, res) => {
-    if (!req.session.user_id) return res.status(401).end('you must be logged in to do that!')
+    if (!req.session.user?.user_id) return res.status(401).end('you must be logged in to do that!')
     withAuthContext(req, async tx => {
-      const [settings] = await db.sql`
+      const {
+        rows: [settings],
+      } = await sql`
       select
         emails,
         authentications,
@@ -225,7 +242,7 @@ const app = express()
         ) _e
       where
         u.id = app_public.current_user_id()
-    `.run(tx)
+    `.execute(tx)
       res.format({
         json: () => res.json({ payload: settings } satisfies FormResult),
       })
@@ -233,11 +250,11 @@ const app = express()
   })
 
   .post('/me', async (req, res) => {
-    if (!req.session?.user_id)
+    if (!req.session.user?.user_id)
       return res
         .status(401)
         .json({ formErrors: ['you must be logged in to do that!'] } satisfies FormResult)
-    const user_id = req.session.user_id
+    const userId = req.session.user.user_id
     const body = z
       .object({
         username: usernameSpec,
@@ -251,9 +268,11 @@ const app = express()
     const { username, name, bio, avatar } = body.data
     withAuthContext(req, async tx => {
       try {
-        const [user] = await db
-          .update('app_public.users', { username, name, bio, avatar_url: avatar }, { id: user_id })
-          .run(tx)
+        const [user] = await tx
+          .updateTable('app_public.users')
+          .set({ username, name, bio, avatar_url: avatar })
+          .where('id', '=', userId)
+          .execute()
         if (!user) throw new Error('invariant: undefined user in POST /settings/profile')
         res.format({
           json: () =>
@@ -261,10 +280,10 @@ const app = express()
               formMessages: ['profile updated'],
               payload: user,
             } satisfies FormResult),
-          html: () => res.redirect('/settings'),
+          html: () => res.redirect(VITE_ROOT_URL + '/settings'),
         })
       } catch (err: any) {
-        if (db.isDatabaseError(err, 'IntegrityConstraintViolation_UniqueViolation')) {
+        if (err.code === '23505') {
           return res.status(403).json({
             fieldErrors: { username: ['username already exists'] },
           } satisfies FormResult)
@@ -278,7 +297,7 @@ const app = express()
   })
 
   .post('/change-password', async (req, res) => {
-    if (!req.session?.user_id)
+    if (!req.session.user?.user_id)
       return res
         .status(401)
         .json({ formErrors: ['you must be logged in to do that!'] } satisfies FormResult)
@@ -298,19 +317,24 @@ const app = express()
     if (!body.success) return res.status(400).json(body.error.flatten() satisfies FormResult)
     withAuthContext(req, async tx => {
       try {
-        const [result] = await db.sql<db.SQL, { change_password: boolean | null }[]>`
-          select * from app_public.change_password(
-            ${db.param(body.data.oldPassword)},
-            ${db.param(body.data.newPassword)}
-          );
-        `.run(tx)
-        if (!result) throw new Error('invariant: no password change result')
+        await tx
+          .selectFrom(eb =>
+            tx
+              .fn('app_public.change_password', [eb.val(body.data.oldPassword), eb.val(body.data.newPassword)])
+              .as('change_password'),
+          )
+          .selectAll(['change_password'])
+          .execute()
         res.format({
           json: () => res.json({ formMessages: ['password updated'] } satisfies FormResult),
-          html: () => res.redirect('/settings'),
+          html: () => res.redirect(VITE_ROOT_URL + '/settings'),
         })
       } catch (err) {
         log.error('%O', err)
+        if (err.errcode === 'CREDS')
+          return res.status(500).json({
+            formErrors: ['there was an error processing your request'],
+          } satisfies FormResult)
         res.status(500).json({
           formErrors: ['there was an error processing your request'],
         } satisfies FormResult)
@@ -319,28 +343,35 @@ const app = express()
   })
 
   .get('/me', (req, res) => {
-    if (!req.session.user_id) return res.json({ payload: null } satisfies FormResult)
     withAuthContext(req, async tx => {
-      const [user] = await db.select('app_public.users', { id: req.session.user_id }).run(tx)
+      const user = await tx
+        .selectFrom('app_public.users')
+        .where('id', '=', eb => eb.fn('app_public.current_user_id', []))
+        .selectAll()
+        .executeTakeFirst()
       res.format({
-        json: () => res.json({ payload: user } satisfies FormResult),
+        json: () => res.json({ payload: user ?? null } satisfies FormResult),
       })
     })
   })
 
   .delete('/me', (req, res, next) => {
-    if (!req.session?.user_id) return res.status(401).end('you must be logged in to do that!')
+    if (!req.session.user?.user_id) return res.status(401).end('you must be logged in to do that!')
     const { data: body } = z.object({ token: z.string().optional() }).safeParse(req.body)
     withAuthContext(req, async tx => {
       try {
         if (body?.token) {
-          const [result] = await db.sql<db.SQL, { confirm_account_deletion: boolean | null }[]>`
-            select * from app_public.confirm_account_deletion(${db.param(body.token)});
-          `.run(tx)
-          if (!result?.confirm_account_deletion)
-            throw new Error('invariant: error deleting account')
-          delete req.session.uuid
-          delete req.session.user_id
+          const result = await tx
+            .selectFrom(eb =>
+              tx
+                .fn<{
+                  confirm_account_deletion: boolean | null
+                }>('app_public.confirm_account_deletion', [eb.val(body.token)])
+                .as('confirm_account_deletion'),
+            )
+            .selectAll()
+            .executeTakeFirstOrThrow()
+          delete req.session.user
           req.session.save(err => {
             if (err) {
               log.error('%O', err)
@@ -353,14 +384,19 @@ const app = express()
               }
               res.format({
                 json: () => res.json({ payload: result }),
-                html: () => res.redirect('/'),
+                html: () => res.redirect(VITE_ROOT_URL),
               })
             })
           })
         } else {
-          const [result] = await db.sql<db.SQL, { request_account_deletion: unknown | null }[]>`
-            select * from app_public.request_account_deletion();
-          `.run(tx)
+          const result = await tx
+            .selectFrom(
+              tx
+                .fn<{ request_account_deletion: unknown | null }>('app_public.request_account_deletion')
+                .as('request_account_deletion'),
+            )
+            .selectAll()
+            .executeTakeFirst()
           res.json(result)
         }
       } catch (err) {
@@ -373,9 +409,10 @@ const app = express()
   .post('/forgot-password', async (req, res) => {
     const body = z.object({ email: z.string().email() }).safeParse(req.body)
     if (!body.success) return res.status(400).json(body.error.flatten() satisfies FormResult)
-    await db.sql`
-      select app_public.forgot_password(${db.param(body.data.email)}::citext);
-    `.run(rootPool)
+    await rootDb
+      .selectFrom(eb => rootDb.fn('app_public.forgot_password', [eb.val(body.data.email)]).as('forgot_password'))
+      .selectAll()
+      .execute()
     res.json({ formMessages: ['Password reset email sent'] } satisfies FormResult)
   })
 
@@ -389,13 +426,20 @@ const app = express()
       .safeParse(req.body)
     if (!body.success) return res.status(400).json(body.error.flatten() satisfies FormResult)
     try {
-      const [result] = await db.sql<db.SQL, { reset_password: boolean | null }[]>`
-          select * from app_private.reset_password(
-            ${db.param(body.data.user_id)}::uuid,
-            ${db.param(body.data.token)}::text,
-            ${db.param(body.data.password)}::text
-          );
-        `.run(tx)
+      const result = await rootDb
+        .selectFrom(eb =>
+          rootDb
+            .fn<{
+              reset_password: boolean | null
+            }>('app_private.reset_password', [
+              eb.val(body.data.user_id),
+              eb.val(body.data.token),
+              eb.val(body.data.password),
+            ])
+            .as('reset_password'),
+        )
+        .selectAll()
+        .executeTakeFirst()
       res.json(result)
     } catch (err) {
       log.error(err)
@@ -403,7 +447,7 @@ const app = express()
     }
   })
 
-  .post('/verify-email', async (req, res) => {
+  .post('/verify-email', (req, res) => {
     const body = z
       .object({
         id: z.string().uuid(),
@@ -411,59 +455,74 @@ const app = express()
       })
       .safeParse(req.body)
     if (!body.success) return res.status(400).json(body.error.flatten() satisfies FormResult)
-    withAuthContext(req, async tx => {
-      const [result] = await db.sql<db.SQL, { verify_email: boolean | null }[]>`
-        select * from app_public.verify_email(
-          ${db.param(body.data.id)}::uuid,
-          ${db.param(body.data.token)}
-        );
-      `.run(tx)
+    return withAuthContext(req, async tx => {
+      const result = await tx
+        .selectFrom(eb =>
+          tx
+            .fn<{ verify_email: boolean | null }>('app_public.verify_email', [
+              eb.val(body.data.token)
+            ])
+            .as('verify_email'),
+        )
+        .selectAll()
+        .execute()
       res.json({ payload: result } satisfies FormResult)
     })
   })
 
-  .post('/make-email-primary', async (req, res) => {
-    if (!req.session?.user_id) return res.status(401).json({ payload: null } satisfies FormResult)
+  .post('/make-email-primary', (req, res) => {
+    if (!req.session.user?.user_id)
+      return res.status(401).json({ payload: null } satisfies FormResult)
     const body = z.object({ emailId: z.string().uuid() }).safeParse(req.body)
     if (!body.success) return res.status(400).json(body.error.flatten() satisfies FormResult)
     withAuthContext(req, async tx => {
-      const [result] = await db.sql<db.SQL, User[]>`
-        select * from app_public.make_email_primary(${db.param(body.data.emailId)}::uuid)
-        where not (id is null);
-      `.run(tx)
+      const result = await tx
+        .selectFrom(eb => tx.fn<User>('app_public.make_email_primary', [eb.val(body.data.emailId)]).as('u'))
+        .selectAll()
+        .where(eb => eb.not(eb('id', 'is', null)))
+        .executeTakeFirst()
       res.json({ payload: result } satisfies FormResult)
     })
   })
 
-  .post('/resend-email-verification-code', async (req, res) => {
-    if (!req.session?.user_id) return res.status(401).json({ payload: null } satisfies FormResult)
+  .post('/resend-email-verification-code', (req, res) => {
+    if (!req.session.user?.user_id)
+      return res.status(401).json({ payload: null } satisfies FormResult)
     const body = z.object({ emailId: z.string().uuid() }).safeParse(req.body)
     if (!body.success) return res.status(400).json(body.error.flatten() satisfies FormResult)
-    withAuthContext(req, async tx => {
-      const [result] = await db.sql<db.SQL, { resend_email_verification_code: boolean | null }[]>`
-        select * from app_public.resend_email_verification_code(${body.data.emailId}::uuid);
-      `.run(tx)
+    return withAuthContext(req, async tx => {
+      const result = await tx
+        .selectFrom(eb =>
+          tx
+            .fn<{
+              resend_email_verification_code: boolean | null
+            }>('app_public.resend_email_verification_code', [eb.val(body.data.emailId)])
+            .as('resend_email_verification_code'),
+        )
+        .selectAll()
+        .executeTakeFirst()
       res.json({ payload: result } satisfies FormResult)
     })
   })
 
   .post('/unlink-auth', (req, res) => {
-    if (!req.session?.user_id) return res.status(401).json({ payload: null } satisfies FormResult)
+    if (!req.session.user?.user_id)
+      return res.status(401).json({ payload: null } satisfies FormResult)
     const body = z.object({ id: z.string().uuid() }).safeParse(req.body)
     if (!body.success) return res.status(400).json(body.error.flatten() satisfies FormResult)
     withAuthContext(req, async tx => {
-      const [result] = await db
-        .deletes('app_public.user_authentications', { id: body.data.id })
-        .run(tx)
-      res.json({ payload: result })
+      const { numDeletedRows } = await tx
+        .deleteFrom('app_public.user_authentications')
+        .where('id', '=', body.data.id)
+        .executeTakeFirst()
+      res.json({ payload: numDeletedRows > 0 } satisfies FormResult)
     })
   })
 
   .post('/logout', (req, res, next) => {
     // clear the user from the session object and save.
     // this will ensure that re-using the old session id does not have a logged in user
-    delete req.session.uuid
-    delete req.session.user_id
+    delete req.session.user
     req.session.save(err => {
       if (err) next(err)
       // regenerate the session, which is good practice to help
@@ -472,7 +531,7 @@ const app = express()
         if (err) next(err)
         res.format({
           json: () => res.json(null),
-          html: () => res.redirect('/'),
+          html: () => res.redirect(VITE_ROOT_URL),
         })
       })
     })
@@ -491,7 +550,7 @@ if (!(GITHUB_CLIENT_ID && GITHUB_CLIENT_SECRET)) {
 
   const providerSpec = z.literal('github')
 
-  app.get('/auth/:provider', async (req, res) => {
+  app.get('/auth/:provider', (req, res) => {
     const params = z.object({ params: providerSpec }).safeParse({ params: req.params.provider })
     if (!params.success) return res.status(400).json(params.error.flatten() satisfies FormResult)
     const provider = oauthProviders.github
@@ -518,8 +577,7 @@ if (!(GITHUB_CLIENT_ID && GITHUB_CLIENT_SECRET)) {
     const state = req.query.state?.toString() ?? null
     const storedState = parseCookies(req.headers.cookie ?? '').get('github_oauth_state') ?? null
     if (!code || !state || !storedState || state !== storedState) return res.status(400).end()
-    const redir = req.query.redirectTo?.toString()
-    console.log({ redir })
+    const redir = req.query.redirectTo?.toString() ?? '/'
     try {
       const tokens: { data: OAuth2Tokens } =
         await oauthProviders.github.validateAuthorizationCode(code)
@@ -555,27 +613,35 @@ if (!(GITHUB_CLIENT_ID && GITHUB_CLIENT_SECRET)) {
           }
         }
       }
-      const [user] = await db.sql<db.SQL, User[]>`
-        select * from app_private.link_or_register_user(
-          f_user_id => ${db.param(req.session.user_id ?? null)},
-          f_service => ${db.param(req.params.provider)},
-          f_identifier => ${db.param(githubUser.username)},
-          f_profile => ${db.param(JSON.stringify(githubUser))},
-          f_auth_details => ${db.param(JSON.stringify(tokens))}
-        );
-      `.run(rootPool)
-      if (!user?.id) {
-        throw new Error('failed to create/return user')
-      }
-      if (!req.session.user_id) {
-        const session = await db.insert('app_private.sessions', { user_id: user.id }).run(rootPool)
-        req.session.uuid = session.uuid
-        req.session.user_id = session.user_id
+      const session = await rootDb
+        .with('create_user', db =>
+          db
+            .selectFrom(
+              rootDb
+                .fn<User>('app_private.link_or_register_user', [
+                  sql`f_user_id => ${req.session.user?.user_id ?? null}`,
+                  sql`f_service => ${req.params.provider}`,
+                  sql`f_identifier => ${githubUser.username}`,
+                  sql`f_profile => ${JSON.stringify(githubUser)}`,
+                  sql`f_auth_details => ${JSON.stringify(tokens)}`,
+                ])
+                .as('u'),
+            )
+            .selectAll(),
+        )
+        .insertInto('app_private.sessions')
+        .values(db => ({ user_id: db.selectFrom('create_user').select(['id']) }))
+        .returning(['uuid', 'user_id'])
+        .executeTakeFirstOrThrow()
+      log.debug(session)
+      req.session.user = {
+        session_id: session.uuid,
+        user_id: session.user_id,
       }
 
       log.debug('new user %O', githubUser.username)
       res.format({
-        json: () => res.json({ payload: user } satisfies FormResult),
+        json: () => res.json({ payload: { user_id: session.user_id } } satisfies FormResult),
         html: () => res.redirect(VITE_ROOT_URL + redir ? decodeURIComponent(redir!) : ''),
       })
     } catch (err) {
