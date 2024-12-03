@@ -47,12 +47,15 @@ async function createConfig(config) {
   if (
     config &&
     config.AUTH_DATABASE_URL &&
+    config.DATABASE_AUTHENTICATOR &&
+    config.DATABASE_AUTHENTICATOR_PASSWORD &&
     config.DATABASE_HOST &&
     config.DATABASE_NAME &&
     config.DATABASE_OWNER &&
     config.DATABASE_OWNER_PASSWORD &&
     config.DATABASE_PORT &&
     config.DATABASE_URL &&
+    config.DATABASE_VISITOR &&
     config.NODE_ENV &&
     config.PORT &&
     config.ROOT_DATABASE_PASSWORD &&
@@ -73,6 +76,8 @@ async function createConfig(config) {
     DATABASE_PORT,
     DATABASE_NAME,
     DATABASE_OWNER,
+    DATABASE_AUTHENTICATOR,
+    DATABASE_VISITOR,
     PORT,
     VITE_ROOT_URL,
   } = await inquirer.prompt(
@@ -109,6 +114,18 @@ async function createConfig(config) {
         prefix: '',
       },
       {
+        name: 'DATABASE_AUTHENTICATOR',
+        message: 'authenticator role name:',
+        default: prompt => `${prompt.DATABASE_NAME}_authenticator`,
+        prefix: '',
+      },
+      {
+        name: 'DATABASE_VISITOR',
+        message: 'visitor role name:',
+        default: prompt => `${prompt.DATABASE_NAME}_visitor`,
+        prefix: '',
+      },
+      {
         name: 'PORT',
         message: 'server port:',
         default: '3000',
@@ -127,6 +144,7 @@ async function createConfig(config) {
   let PASSWORDS = {
     ROOT_DATABASE_PASSWORD: config?.ROOT_DATABASE_PASSWORD,
     DATABASE_OWNER_PASSWORD: config?.DATABASE_OWNER_PASSWORD,
+    DATABASE_AUTHENTICATOR_PASSWORD: config?.DATABASE_AUTHENTICATOR_PASSWORD,
     SHADOW_DATABASE_PASSWORD: config?.SHADOW_DATABASE_PASSWORD,
     SECRET: config?.SECRET,
   }
@@ -143,6 +161,8 @@ async function createConfig(config) {
       ? {
           ROOT_DATABASE_PASSWORD: config?.ROOT_DATABASE_PASSWORD ?? generatePassword(18),
           DATABASE_OWNER_PASSWORD: config?.DATABASE_OWNER_PASSWORD ?? generatePassword(18),
+          DATABASE_AUTHENTICATOR_PASSWORD:
+            config?.DATABASE_AUTHENTICATOR_PASSWORD ?? generatePassword(18),
           SHADOW_DATABASE_PASSWORD: config?.SHADOW_DATABASE_PASSWORD ?? generatePassword(18),
           SECRET: config?.SECRET ?? generatePassword(32),
         }
@@ -155,6 +175,11 @@ async function createConfig(config) {
             },
             {
               name: 'DATABASE_OWNER_PASSWORD',
+              default: () => generatePassword(18),
+              prefix: '',
+            },
+            {
+              name: 'DATABASE_AUTHENTICATOR_PASSWORD',
               default: () => generatePassword(18),
               prefix: '',
             },
@@ -185,8 +210,12 @@ async function createConfig(config) {
     DATABASE_OWNER: DATABASE_OWNER,
     DATABASE_OWNER_PASSWORD: PASSWORDS.DATABASE_OWNER_PASSWORD,
     DATABASE_URL: `postgres://${DATABASE_OWNER}:${PASSWORDS.DATABASE_OWNER_PASSWORD}@${DATABASE_HOST}:${DATABASE_PORT}/${DATABASE_NAME}`,
+    DATABASE_AUTHENTICATOR: DATABASE_AUTHENTICATOR,
+    DATABASE_AUTHENTICATOR_PASSWORD: PASSWORDS.DATABASE_AUTHENTICATOR_PASSWORD,
     SHADOW_DATABASE_PASSWORD: PASSWORDS.SHADOW_DATABASE_PASSWORD,
     SHADOW_DATABASE_URL: `postgres://${DATABASE_NAME}_shadow:${PASSWORDS.SHADOW_DATABASE_PASSWORD}@${DATABASE_HOST}:${DATABASE_PORT}/${DATABASE_NAME}`,
+    AUTH_DATABASE_URL: `postgres://${DATABASE_AUTHENTICATOR}:${PASSWORDS.DATABASE_AUTHENTICATOR_PASSWORD}@${DATABASE_HOST}:${DATABASE_PORT}/${DATABASE_NAME}`,
+    DATABASE_VISITOR: DATABASE_VISITOR,
     SECRET: PASSWORDS.SECRET,
     PORT,
     VITE_ROOT_URL,

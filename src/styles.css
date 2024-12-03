@@ -20,6 +20,10 @@ ul {
   margin: 0;
 }
 
+.text-center {
+  text-align: center;
+}
+
 .flex-col {
   display: flex;
   flex-direction: column;
@@ -78,4 +82,10 @@ form .field-error {
 form button {
   grid-column: span 3 / span 3;
   margin: 0 auto;
+}
+
+nav [aria-current=page] {
+  text-decoration: none;
+  color: inherit;
+  pointer-events: none;
 }

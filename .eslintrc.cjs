@@ -44,5 +44,6 @@ module.exports = {
     'semi': ['error', 'never'],
     'valid-jsdoc': 'warn',
     'react/react-in-jsx-scope': 'off',
+    'no-console': 'error',
   },
 }

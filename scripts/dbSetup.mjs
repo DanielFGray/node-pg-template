@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import pg from 'pg'
 import inquirer from 'inquirer'
 
@@ -5,6 +6,9 @@ const {
   DATABASE_OWNER,
   DATABASE_OWNER_PASSWORD,
   DATABASE_NAME,
+  DATABASE_VISITOR,
+  DATABASE_AUTHENTICATOR,
+  DATABASE_AUTHENTICATOR_PASSWORD,
   ROOT_DATABASE_URL,
 } = process.env
 
@@ -42,6 +46,8 @@ const pgPool = new pg.Pool({ connectionString: ROOT_DATABASE_URL })
 
   const rootPgPool = await pgPool.connect()
   console.log(`DROP DATABASE ${DATABASE_NAME}`)
+  console.log(`DROP ROLE ${DATABASE_VISITOR}`)
+  console.log(`DROP ROLE ${DATABASE_AUTHENTICATOR}`)
   console.log(`DROP ROLE ${DATABASE_OWNER}`)
 
   const { confirm } = process.env.NOCONFIRM
@@ -60,6 +66,8 @@ const pgPool = new pg.Pool({ connectionString: ROOT_DATABASE_URL })
     await rootPgPool.query(`drop database if exists ${DATABASE_NAME}`)
     await rootPgPool.query(`drop database if exists ${DATABASE_NAME}_shadow`)
     await rootPgPool.query(`drop database if exists ${DATABASE_NAME}_test`)
+    await rootPgPool.query(`drop role if exists ${DATABASE_VISITOR}`)
+    await rootPgPool.query(`drop role if exists ${DATABASE_AUTHENTICATOR}`)
     await rootPgPool.query(`drop role if exists ${DATABASE_OWNER}`)
     await rootPgPool.query(`create database ${DATABASE_NAME}`)
     console.log(`CREATE DATABASE ${DATABASE_NAME}`)
@@ -68,6 +76,12 @@ const pgPool = new pg.Pool({ connectionString: ROOT_DATABASE_URL })
     await rootPgPool.query(`create database ${DATABASE_NAME}_test`)
     console.log(`CREATE DATABASE ${DATABASE_NAME}_test`)
 
+    /* Now to set up the database cleanly:
+     * Ref: https://devcenter.heroku.com/articles/heroku-postgresql#connection-permissions
+     *
+     * This is the root role for the database
+     * IMPORTANT: don't grant SUPERUSER in production, we only need this so we can load the watch fixtures!
+     */
     if (process.env.NODE_ENV === 'production') {
       await rootPgPool.query(
         `create role ${DATABASE_OWNER} with login password '${DATABASE_OWNER_PASSWORD}' noinherit`,
@@ -82,6 +96,20 @@ const pgPool = new pg.Pool({ connectionString: ROOT_DATABASE_URL })
 
     await rootPgPool.query(`grant all privileges on database ${DATABASE_NAME} to ${DATABASE_OWNER}`)
     console.log(`GRANT ${DATABASE_OWNER}`)
+
+    // This is the no-access role that PostGraphile will run as by default
+    await rootPgPool.query(
+      `create role ${DATABASE_AUTHENTICATOR} with login password '${DATABASE_AUTHENTICATOR_PASSWORD}' noinherit`,
+    )
+    console.log(`CREATE ROLE ${DATABASE_AUTHENTICATOR}`)
+
+    // This is the role that PostGraphile will switch to (from DATABASE_AUTHENTICATOR) during a GraphQL request
+    await rootPgPool.query(`create role ${DATABASE_VISITOR}`)
+    console.log(`CREATE ROLE ${DATABASE_VISITOR}`)
+
+    // This enables PostGraphile to switch from DATABASE_AUTHENTICATOR to DATABASE_VISITOR
+    await rootPgPool.query(`grant ${DATABASE_VISITOR} to ${DATABASE_AUTHENTICATOR}`)
+    console.log(`GRANT ${DATABASE_VISITOR} TO ${DATABASE_AUTHENTICATOR}`)
   } catch (e) {
     console.error(e)
   } finally {

@@ -16,9 +16,21 @@
     }
   },
   "schemas": {
-    "public": {
+    "app_private": {
       "include": "*",
-      "exclude": ["schema_migrations"]
+      "exclude": []
+    },
+    "app_public": {
+      "include": "*",
+      "exclude": []
+    },
+    "graphile-worker": {
+      "include": [],
+      "exclude": "*"
+    },
+    "graphile-migrate": {
+      "include": [],
+      "exclude": "*"
     }
   }
 }

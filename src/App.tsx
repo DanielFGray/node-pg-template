@@ -1,9 +1,12 @@
-import { Routes, Route, Link, useLocation, Navigate, Outlet } from 'react-router'
+import { Routes, Route, useLocation, Navigate, Outlet, NavLink } from 'react-router'
 import { useAuth } from './Auth.ctx.js'
 import Login from './login.js'
 import Logout from './logout.js'
 import Register from './register.js'
 import Settings from './settings.js'
+import Verify from './verify.js'
+import Forgot from './forgot.js'
+import Home from './home.js'
 
 function Layout({ children }: { children: React.ReactNode }) {
   const { user } = useAuth()
@@ -12,41 +15,31 @@ function Layout({ children }: { children: React.ReactNode }) {
       <nav>
         <ul className="flex-row gap-2">
           <li>
-            <Link to="/">home</Link>
+            <NavLink to="/">home</NavLink>
           </li>
           {user ? (
             <>
               <li>hi {user.username}!</li>
               <li>
-                <Link to="/settings">settings</Link>
+                <NavLink  to="/settings">settings</NavLink>
               </li>
               <li>
-                <Link to="/logout">log out</Link>
+                <NavLink to="/logout">log out</NavLink>
               </li>
             </>
           ) : (
             <>
               <li>
-                <Link to="/login">login</Link>
+                <NavLink to="/login">login</NavLink>
               </li>
               <li>
-                <Link to="/register">register</Link>
+                <NavLink to="/register">register</NavLink>
               </li>
             </>
           )}
         </ul>
       </nav>
       {children}
-    </>
-  )
-}
-
-function Home() {
-  const { user } = useAuth()
-  return (
-    <>
-      <h1>Home</h1>
-      <pre>{JSON.stringify({ user }, null, 2)}</pre>
     </>
   )
 }
@@ -90,6 +83,8 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+        <Route path="/verify" element={<Verify />} />
+        <Route path="/forgot" element={<Forgot />} />
         <Route path="/logout" element={<Logout />} />
         <Route path="*" element={<NotFound />} />
       </Routes>

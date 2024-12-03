@@ -15,4 +15,8 @@ const Init = (
   </React.StrictMode>
 )
 
-ReactDOM.createRoot(document.getElementById('root')).render(Init)
+document.addEventListener('DOMContentLoaded', () => {
+  const el = document.getElementById('root')
+  if (!el) throw new Error('no root element')
+  ReactDOM.createRoot(el).render(Init)
+})

@@ -7,11 +7,12 @@ const serverUrl = `http://localhost:${process.env.PORT}`
 export default defineConfig({
   plugins: [react()],
   build: {
-    outDir: 'dist',
+    outDir: 'dist/client',
     emptyOutDir: true,
   },
   server: {
     proxy: {
+      '/auth': serverUrl,
       '/api': {
         target: serverUrl,
         changeOrigin: true,

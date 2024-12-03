@@ -1,15 +1,20 @@
 import { useNavigate } from 'react-router'
 import { useAuth } from './Auth.ctx.js'
+import { api } from './api.js'
 
 export default function Logout() {
   const navigate = useNavigate()
   const auth = useAuth()
+  if (!auth.user) {
+    navigate('/')
+    return null
+  }
   return (
     <form
       method="POST"
       onSubmit={ev => {
         ev.preventDefault()
-        fetch('/api/logout', { method: 'post' }).then(() => {
+        api('/logout', { method: 'post' }).then(() => {
           auth.setUser(null)
           navigate('/')
         })

@@ -3,7 +3,7 @@ import pg from 'pg'
 import { randomBytes } from 'node:crypto'
 import './assertEnv'
 import { api } from '#app/api.js'
-import type { FormErrorResult } from '#app/types.js'
+import type { FormResult } from '#app/types.js'
 
 const user = (() => {
   const password = randomBytes(8).toString('hex')
@@ -20,20 +20,20 @@ describe('auth:user', () => {
   let Cookie: string
 
   it('can register', async () => {
-    const { headers, data, error } = await api('/register', {
+    const { headers, data, error } = await api<FormResult>('/register', {
       method: 'post',
       body: new URLSearchParams(user),
     })
-    expect(error?.value).toBeUndefined()
+    expect(error).toBeUndefined()
     expect(data).toBeTypeOf('object')
-    expect(data?.id).toBeTypeOf('string')
-    expect(data?.username).toBe(user.username)
-    userId = data?.id as string
+    expect(data?.payload?.id).toBeTypeOf('string')
+    expect(data?.payload?.username).toBe(user.username)
+    userId = data?.payload?.id as string
     Cookie = headers.get('set-cookie')
   })
 
   it('can not register with an existing username', async () => {
-    const { data, error } = await api('/register', {
+    const { data, error } = await api<FormResult>('/register', {
       method: 'post',
       body: new URLSearchParams(user),
     })
@@ -42,7 +42,7 @@ describe('auth:user', () => {
   })
 
   it('can not login with wrong password', async () => {
-    const { data, error } = await api('/login', {
+    const { data, error } = await api<FormResult>('/login', {
       method: 'post',
       body: new URLSearchParams({ id: user.username, password: 'wrong123' }),
     })
@@ -51,13 +51,13 @@ describe('auth:user', () => {
   })
 
   it('can request /me from cookie', async () => {
-    const { data, error } = await api<FormErrorResult<User>>('/me', {
+    const { data, error } = await api<FormResult>('/me', {
       headers: { Cookie, Accept: 'application/json' },
     })
     expect(error).toBeUndefined()
     expect(data).not.toBeNull()
-    expect(data?.id).toEqual(userId)
-    expect(data?.username).toEqual(user.username)
+    expect(data?.payload?.id).toEqual(userId)
+    expect(data?.payload?.username).toEqual(user.username)
   })
 })
 

@@ -11,11 +11,18 @@ const envSchema = z.object({
   DATABASE_OWNER: z.string(),
   DATABASE_OWNER_PASSWORD: z.string(),
   DATABASE_URL: z.string(),
+  DATABASE_AUTHENTICATOR: z.string(),
+  DATABASE_AUTHENTICATOR_PASSWORD: z.string(),
   SHADOW_DATABASE_PASSWORD: z.string(),
   SHADOW_DATABASE_URL: z.string(),
+  AUTH_DATABASE_URL: z.string(),
+  DATABASE_VISITOR: z.string(),
   SECRET: z.string(),
   PORT: z.string(),
   VITE_ROOT_URL: z.string(),
+  GITHUB_CLIENT_ID: z.string().optional(),
+  GITHUB_CLIENT_SECRET: z.string().optional(),
+  GITHUB_PAT: z.string().optional(),
 })
 const schemaParsed = envSchema.safeParse(process.env)
 
@@ -34,4 +41,4 @@ declare global {
   }
 }
 
-// export const env = schemaParsed.data;
+export const env = schemaParsed.data
