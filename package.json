@@ -49,8 +49,8 @@
     "test": "run-s test:units test:e2e"
   },
   "dependencies": {
-    "@react-router/node": "^7.0.1",
-    "@react-router/serve": "^7.0.1",
+    "@react-router/node": "^7.0.2",
+    "@react-router/serve": "^7.0.2",
     "arctic": "^2.3.0",
     "connect-pg-simple": "^10.0.0",
     "debug": "^4.3.7",
@@ -70,17 +70,17 @@
     "pg": "^8.13.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router": "^7.0.1",
+    "react-router": "^7.0.2",
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "@react-router/dev": "^7.0.1",
+    "@react-router/dev": "^7.0.2",
     "@total-typescript/tsconfig": "^1.0.4",
     "@types/debug": "^4.1.12",
     "@types/eslint": "^9.6.1",
     "@types/eslint-plugin-jsx-a11y": "^6.10.0",
     "@types/express": "^4.17.21",
-    "@types/express-session": "^1.18.0",
+    "@types/express-session": "^1.18.1",
     "@types/html-to-text": "~9.0.4",
     "@types/lodash": "~4.17.13",
     "@types/mjml": "~4.7.4",
@@ -91,15 +91,9 @@
     "@types/react-dom": "^18.3.1",
     "@typescript-eslint/eslint-plugin": "^5.62.0",
     "@typescript-eslint/parser": "^5.62.0",
-<<<<<<< HEAD
-    "@vitejs/plugin-react": "^4.3.3",
-    "cypress": "^13.16.0",
-    "dotenv": "^16.4.5",
-=======
     "@vitejs/plugin-react": "^4.3.4",
     "cypress": "^13.16.1",
     "dotenv": "^16.4.7",
->>>>>>> 172247b (fixup cypress)
     "esbuild": "^0.24.0",
     "eslint": "^8.57.1",
     "eslint-plugin-jsx-a11y": "^6.10.2",
@@ -107,10 +101,10 @@
     "eslint-plugin-react-hooks": "^4.6.2",
     "inquirer": "^12.1.0",
     "nodemon": "^3.1.7",
-    "prettier": "^3.3.3",
+    "prettier": "^3.4.2",
     "typescript": "^5.7.2",
     "vite": "^5.4.11",
-    "vitest": "^2.1.6"
+    "vitest": "^2.1.8"
   },
   "browserslist": {
     "production": [
