@@ -40,10 +40,13 @@
     "predev": "run-s -s db:ensure",
     "init": "NOCONFIRM=1 run-s env:init db:init",
     "vitest": "node --env-file=.env ./node_modules/.bin/vitest",
+    "cypress": "node --env-file=.env ./node_modules/.bin/cypress",
+    "test:e2e:browser": "run-s -s 'cypress -- open --e2e'",
+    "test:e2e": "run-s -s 'cypress -- run --e2e'",
     "test:units": "run-s -s 'vitest run'",
     "test:units:watch": "run-s -s 'vitest run -- --watch'",
     "test:dev": "run-s test:units:watch",
-    "test": "run-s test:units"
+    "test": "run-s test:units test:e2e"
   },
   "dependencies": {
     "@react-router/node": "^7.0.1",
@@ -88,8 +91,15 @@
     "@types/react-dom": "^18.3.1",
     "@typescript-eslint/eslint-plugin": "^5.62.0",
     "@typescript-eslint/parser": "^5.62.0",
+<<<<<<< HEAD
     "@vitejs/plugin-react": "^4.3.3",
+    "cypress": "^13.16.0",
     "dotenv": "^16.4.5",
+=======
+    "@vitejs/plugin-react": "^4.3.4",
+    "cypress": "^13.16.1",
+    "dotenv": "^16.4.7",
+>>>>>>> 172247b (fixup cypress)
     "esbuild": "^0.24.0",
     "eslint": "^8.57.1",
     "eslint-plugin-jsx-a11y": "^6.10.2",

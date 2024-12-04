@@ -654,4 +654,8 @@ if (!(GITHUB_CLIENT_ID && GITHUB_CLIENT_SECRET)) {
   })
 }
 
+if (process.env.NODE_ENV !== 'production') {
+  import('./cypress.js').then(m => m.installCypressCommands(app))
+}
+
 app.listen(PORT, () => console.log(`server listening on port ${PORT}`))

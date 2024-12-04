@@ -36,13 +36,16 @@ export default function Login() {
             <div className="field-error">you must be logged in to do that!</div>
           )}
           <div className="form-row">
-            <label htmlFor="login-username-input">username:</label>
+            <label htmlFor="login-username-input" data-cy="login-username-label">
+              username:
+            </label>
             <input
               type="text"
               name="id"
               id="login-username-input"
               aria-describedby="login-username-help"
               aria-invalid={Boolean(response?.fieldErrors?.username)}
+              data-cy="login-username-input"
             />
             {response?.fieldErrors?.username?.map(e => (
               <div className="field-error" key={e} id="login-username-help">
@@ -52,13 +55,16 @@ export default function Login() {
           </div>
 
           <div className="form-row">
-            <label htmlFor="login-password-input">password:</label>
+            <label htmlFor="login-password-input" data-cy="login-password-label">
+              password:
+            </label>
             <input
               type="password"
               name="password"
               id="login-password-input"
               aria-describedby="login-password-help"
               aria-invalid={Boolean(response?.fieldErrors?.password)}
+              data-cy="login-password-input"
             />
             {response?.fieldErrors?.password?.map(e => (
               <div className="field-error" key={e} id="login-password-help">
@@ -73,7 +79,9 @@ export default function Login() {
                 {e}
               </div>
             ))}
-            <button type="submit">login</button>
+            <button type="submit" data-cy="login-submit-button">
+              login
+            </button>
             {response?.formErrors && (
               <>
                 {' '}

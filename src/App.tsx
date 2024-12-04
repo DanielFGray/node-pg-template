@@ -12,28 +12,28 @@ function Layout({ children }: { children: React.ReactNode }) {
   const { user } = useAuth()
   return (
     <>
-      <nav>
+      <nav data-cy="nav">
         <ul className="flex-row gap-2">
           <li>
-            <NavLink to="/">home</NavLink>
+            <NavLink to="/" data-cy="nav-home">home</NavLink>
           </li>
           {user ? (
             <>
               <li>hi {user.username}!</li>
               <li>
-                <NavLink  to="/settings">settings</NavLink>
+                <NavLink to="/settings" data-cy="nav-settings">settings</NavLink>
               </li>
               <li>
-                <NavLink to="/logout">log out</NavLink>
+                <NavLink to="/logout" data-cy="nav-logout">log out</NavLink>
               </li>
             </>
           ) : (
             <>
               <li>
-                <NavLink to="/login">login</NavLink>
+                <NavLink to="/login" data-cy="nav-login">login</NavLink>
               </li>
               <li>
-                <NavLink to="/register">register</NavLink>
+                <NavLink to="/register" data-cy="nav-register">register</NavLink>
               </li>
             </>
           )}

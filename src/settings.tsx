@@ -229,7 +229,7 @@ function EmailSettings({
   return (
     <fieldset>
       <legend>email settings</legend>
-      <ul>
+      <ul data-cy="email-settings-list">
         {emails.map(email => (
           <Email key={email.id} email={email} hasOtherEmails={Number(emails.length) > 1} />
         ))}
@@ -271,7 +271,12 @@ function Email({ email, hasOtherEmails }: { email: UserEmail; hasOtherEmails: bo
         <input type="hidden" name="emailId" value={email.id} />
         {email.is_primary && <span className="primary_indicator">Primary</span>}
         {canDelete && (
-          <button type="submit" name="type" value="deleteEmail">
+          <button
+            type="submit"
+            name="type"
+            value="deleteEmail"
+            data-cy="email-settings-button-delete"
+          >
             Delete
           </button>
         )}
@@ -281,7 +286,11 @@ function Email({ email, hasOtherEmails }: { email: UserEmail; hasOtherEmails: bo
           </button>
         )}
         {email.is_verified && !email.is_primary && (
-          <button name="type" value="makePrimary">
+          <button
+            name="type"
+            value="makePrimary"
+            data-cy="email-settings-button-makeprimary"
+          >
             Make primary
           </button>
         )}
@@ -302,7 +311,7 @@ function AddEmailForm() {
           setShowForm(true)
         }}
       >
-        <button type="submit" name="showAddEmail" value="1">
+        <button type="submit" name="showAddEmail" value="1" data-cy="settings-new-email-button">
           Add email
         </button>
       </form>
@@ -329,6 +338,7 @@ function AddEmailForm() {
           autoComplete="email"
           aria-describedby="settings-new-email-help"
           aria-invalid={Boolean(response?.fieldErrors?.newEmail)}
+          data-cy="settings-new-email-input"
         />
         {response?.fieldErrors?.newEmail?.map(e => (
           <div key={e} className="field-error" id="settings-new-email-help">
@@ -347,7 +357,9 @@ function AddEmailForm() {
             {e}
           </div>
         ))}
-        <button type="submit">add email</button>
+        <button type="submit" data-cy="settings-submit-button">
+          add email
+        </button>
       </div>
     </form>
   )
