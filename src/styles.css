@@ -84,7 +84,7 @@ form button {
   margin: 0 auto;
 }
 
-nav [aria-current=page] {
+nav [aria-current='page'] {
   text-decoration: none;
   color: inherit;
   pointer-events: none;

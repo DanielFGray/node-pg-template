@@ -185,7 +185,7 @@ const app = express()
       try {
         const {
           rows: [session],
-        } = await sql<Session>`
+        } = await sql`
           select u.* from app_private.login(
             ${id}::citext,
             ${password}
@@ -214,7 +214,7 @@ const app = express()
 
   .get('/settings', async (req, res) => {
     if (!req.session.user?.user_id) return res.status(401).end('you must be logged in to do that!')
-    withAuthContext(req, async tx => {
+    return withAuthContext(req, async tx => {
       const {
         rows: [settings],
       } = await sql`
@@ -266,7 +266,7 @@ const app = express()
       .safeParse(req.body)
     if (!body.success) return res.status(400).json(body.error.flatten() satisfies FormResult)
     const { username, name, bio, avatar } = body.data
-    withAuthContext(req, async tx => {
+    return withAuthContext(req, async tx => {
       try {
         const [user] = await tx
           .updateTable('app_public.users')
@@ -315,12 +315,15 @@ const app = express()
       .refine(data => data.newPassword === data.confirmPassword, 'passwords must match')
       .safeParse(req.body)
     if (!body.success) return res.status(400).json(body.error.flatten() satisfies FormResult)
-    withAuthContext(req, async tx => {
+    return withAuthContext(req, async tx => {
       try {
         await tx
           .selectFrom(eb =>
             tx
-              .fn('app_public.change_password', [eb.val(body.data.oldPassword), eb.val(body.data.newPassword)])
+              .fn('app_public.change_password', [
+                eb.val(body.data.oldPassword),
+                eb.val(body.data.newPassword),
+              ])
               .as('change_password'),
           )
           .selectAll(['change_password'])
@@ -343,7 +346,7 @@ const app = express()
   })
 
   .get('/me', (req, res) => {
-    withAuthContext(req, async tx => {
+    return withAuthContext(req, async tx => {
       const user = await tx
         .selectFrom('app_public.users')
         .where('id', '=', eb => eb.fn('app_public.current_user_id', []))
@@ -358,7 +361,7 @@ const app = express()
   .delete('/me', (req, res, next) => {
     if (!req.session.user?.user_id) return res.status(401).end('you must be logged in to do that!')
     const { data: body } = z.object({ token: z.string().optional() }).safeParse(req.body)
-    withAuthContext(req, async tx => {
+    return withAuthContext(req, async tx => {
       try {
         if (body?.token) {
           const result = await tx
@@ -392,7 +395,9 @@ const app = express()
           const result = await tx
             .selectFrom(
               tx
-                .fn<{ request_account_deletion: unknown | null }>('app_public.request_account_deletion')
+                .fn<{
+                  request_account_deletion: unknown | null
+                }>('app_public.request_account_deletion')
                 .as('request_account_deletion'),
             )
             .selectAll()
@@ -410,7 +415,9 @@ const app = express()
     const body = z.object({ email: z.string().email() }).safeParse(req.body)
     if (!body.success) return res.status(400).json(body.error.flatten() satisfies FormResult)
     await rootDb
-      .selectFrom(eb => rootDb.fn('app_public.forgot_password', [eb.val(body.data.email)]).as('forgot_password'))
+      .selectFrom(eb =>
+        rootDb.fn('app_public.forgot_password', [eb.val(body.data.email)]).as('forgot_password'),
+      )
       .selectAll()
       .execute()
     res.json({ formMessages: ['Password reset email sent'] } satisfies FormResult)
@@ -459,9 +466,9 @@ const app = express()
       const result = await tx
         .selectFrom(eb =>
           tx
-            .fn<{ verify_email: boolean | null }>('app_public.verify_email', [
-              eb.val(body.data.token)
-            ])
+            .fn<{
+              verify_email: boolean | null
+            }>('app_public.verify_email', [eb.val(body.data.token)])
             .as('verify_email'),
         )
         .selectAll()
@@ -475,9 +482,11 @@ const app = express()
       return res.status(401).json({ payload: null } satisfies FormResult)
     const body = z.object({ emailId: z.string().uuid() }).safeParse(req.body)
     if (!body.success) return res.status(400).json(body.error.flatten() satisfies FormResult)
-    withAuthContext(req, async tx => {
+    return withAuthContext(req, async tx => {
       const result = await tx
-        .selectFrom(eb => tx.fn<User>('app_public.make_email_primary', [eb.val(body.data.emailId)]).as('u'))
+        .selectFrom(eb =>
+          tx.fn<User>('app_public.make_email_primary', [eb.val(body.data.emailId)]).as('u'),
+        )
         .selectAll()
         .where(eb => eb.not(eb('id', 'is', null)))
         .executeTakeFirst()
@@ -510,7 +519,7 @@ const app = express()
       return res.status(401).json({ payload: null } satisfies FormResult)
     const body = z.object({ id: z.string().uuid() }).safeParse(req.body)
     if (!body.success) return res.status(400).json(body.error.flatten() satisfies FormResult)
-    withAuthContext(req, async tx => {
+    return withAuthContext(req, async tx => {
       const { numDeletedRows } = await tx
         .deleteFrom('app_public.user_authentications')
         .where('id', '=', body.data.id)

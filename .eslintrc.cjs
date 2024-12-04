@@ -1,14 +1,7 @@
 module.exports = {
   parser: '@typescript-eslint/parser',
-  plugins: [
-    '@typescript-eslint',
-  ],
-  plugins: [
-    'jsx-a11y',
-    'react',
-    'react-hooks',
-    '@typescript-eslint',
-  ],
+  plugins: ['@typescript-eslint'],
+  plugins: ['jsx-a11y', 'react', 'react-hooks', '@typescript-eslint'],
   extends: [
     'eslint:recommended',
     'plugin:jsx-a11y/recommended',

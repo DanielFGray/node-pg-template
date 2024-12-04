@@ -18,6 +18,6 @@ export async function api<T = unknown>(path: string, opts: RequestInit = {}) {
     ok: true,
     status: req.status,
     headers: req.headers,
-    data: await req.json() as T,
+    data: (await req.json()) as T,
   } as const
 }
