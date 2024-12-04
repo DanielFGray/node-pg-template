@@ -16,10 +16,10 @@
   },
   "scripts": {
     "client:build": "vite build --ssrManifest",
-    "server:build": "NODE_ENV=production esbuild --bundle --packages=external --format=esm --target=es2022 --outfile=./dist/server.js server/index.ts",
+    "server:build": "node ./scripts/serverBuild.mjs",
     "server:dev": "run-p start:watch 'server:build -- --watch'",
     "client:dev": "vite dev --clearScreen=false",
-    "build": "run-s server:build client:build",
+    "build": "NODE_ENV=production run-s client:build server:build",
     "start:watch": "nodemon -w dist/server.js -x 'DEBUG=app:*,db:query node --env-file=.env dist/server.js'",
     "server:start": "node --env-file=.env dist/server.js",
     "start": "NODE_ENV=production run-p -s server:start worker",
