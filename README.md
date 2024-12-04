@@ -16,4 +16,5 @@ This will do a number of things, like generate a `.env` file and prompt for pass
 
 - [x] settings page
 - [x] client-side protected routes
+- [ ] observability
 - [ ] server-side rendering?
