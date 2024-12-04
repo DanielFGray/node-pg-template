@@ -371,7 +371,7 @@ const app = express()
             )
             .selectAll()
             .executeTakeFirstOrThrow()
-          delete req.session.user
+          req.session.user = null
           req.session.save(err => {
             if (err) {
               log.error('%O', err)
@@ -522,7 +522,7 @@ const app = express()
   .post('/logout', (req, res, next) => {
     // clear the user from the session object and save.
     // this will ensure that re-using the old session id does not have a logged in user
-    delete req.session.user
+    req.session.user = null
     req.session.save(err => {
       if (err) next(err)
       // regenerate the session, which is good practice to help
