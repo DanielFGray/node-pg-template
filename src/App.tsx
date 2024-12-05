@@ -7,6 +7,7 @@ import Settings from './settings.js'
 import Verify from './verify.js'
 import Forgot from './forgot.js'
 import Home from './home.js'
+import { ResetPass } from './reset.js'
 
 function Layout({ children }: { children: React.ReactNode }) {
   const { user } = useAuth()
@@ -86,6 +87,7 @@ export default function App() {
         <Route path="/verify" element={<Verify />} />
         <Route path="/forgot" element={<Forgot />} />
         <Route path="/logout" element={<Logout />} />
+        <Route path="/reset" element={<ResetPass />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Layout>

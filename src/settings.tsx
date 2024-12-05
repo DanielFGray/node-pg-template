@@ -14,7 +14,7 @@ type SettingsData = {
 
 export default function Settings() {
   const auth = useAuth()
-  if (!auth.user) throw new Error("you shouldn't be here")
+  if (!auth.user) throw new Error('you shouldn\'t be here')
   const [settings, setEmail] = useState<SettingsData>()
   function refetch() {
     return api<FormResult<SettingsData>>('/settings').then(res => {
@@ -249,6 +249,7 @@ function EmailSettings({
 }
 
 function Email({ email, hasOtherEmails }: { email: UserEmail; hasOtherEmails: boolean }) {
+  const [response, setResponse] = useState<FormResult>()
   const canDelete = !email.is_primary && hasOtherEmails
   return (
     <li>
@@ -267,8 +268,27 @@ function Email({ email, hasOtherEmails }: { email: UserEmail; hasOtherEmails: bo
           Added {new Date(Date.parse(email.created_at)).toLocaleString()}
         </div>
       </div>
-      <form method="post">
+      <form
+        method="post"
+        onSubmit={ev => {
+          ev.preventDefault()
+          const body = new URLSearchParams(new FormData(ev.currentTarget) as any)
+          api<FormResult>('/resend-email-verification-code', { method: 'post', body }).then(res => {
+            setResponse(res.data)
+          })
+        }}
+      >
         <input type="hidden" name="emailId" value={email.id} />
+        {response?.formErrors?.map(e => (
+          <div key={e} className="field-error">
+            {e}
+          </div>
+        ))}
+        {response?.formMessages?.map(e => (
+          <div key={e} className="field-message">
+            {e}
+          </div>
+        ))}
         {email.is_primary && <span className="primary_indicator">Primary</span>}
         {canDelete && (
           <button

@@ -202,6 +202,18 @@ const app = express()
           session_id: session.uuid,
           user_id: session.user_id,
         }
+
+        return withAuthContext(req, async tx => {
+          const user = await tx
+            .selectFrom('app_public.users')
+            .where('id', '=', eb => eb.fn('app_public.current_user_id', []))
+            .selectAll()
+            .executeTakeFirst()
+          res.format({
+            json: () => res.json({ payload: user ?? null } satisfies FormResult),
+            html: () => res.redirect(VITE_ROOT_URL + decodeURIComponent(req.query.redirectTo ?? '/')),
+          })
+        })
         res.json({ payload: session.user_id } satisfies FormResult)
       } catch (err) {
         log.error('%O', err)
@@ -218,31 +230,31 @@ const app = express()
       const {
         rows: [settings],
       } = await sql`
-      select
-        emails,
-        authentications,
-        app_public.users_has_password(u) has_password
-      from
-        app_public.users u,
-        lateral (
-          select
-            coalesce(json_agg(a.*), '[]') as authentications
-          from
-            app_public.user_authentications a
-          where
-            user_id = u.id
-        ) _a,
-        lateral (
-          select
-            json_agg(e.*) as emails
-          from
-            app_public.user_emails e
-          where
-            user_id = u.id
-        ) _e
-      where
-        u.id = app_public.current_user_id()
-    `.execute(tx)
+        select
+          emails,
+          authentications,
+          app_public.users_has_password(u) has_password
+        from
+          app_public.users u,
+          lateral (
+            select
+              coalesce(json_agg(a.*), '[]') as authentications
+            from
+              app_public.user_authentications a
+            where
+              user_id = u.id
+          ) _a,
+          lateral (
+            select
+              json_agg(e.*) as emails
+            from
+              app_public.user_emails e
+            where
+              user_id = u.id
+          ) _e
+        where
+          u.id = app_public.current_user_id()
+      `.execute(tx)
       res.format({
         json: () => res.json({ payload: settings } satisfies FormResult),
       })
@@ -260,20 +272,21 @@ const app = express()
         username: usernameSpec,
         name: z.string(),
         bio: z.string(),
-        avatar: z.string().url(),
+        avatar_url: z.string().url(),
       })
       .partial()
+      .strict()
       .safeParse(req.body)
     if (!body.success) return res.status(400).json(body.error.flatten() satisfies FormResult)
-    const { username, name, bio, avatar } = body.data
+    const { username, name, bio, avatar_url } = body.data
     return withAuthContext(req, async tx => {
       try {
-        const [user] = await tx
+        const user = await tx
           .updateTable('app_public.users')
-          .set({ username, name, bio, avatar_url: avatar })
+          .set({ username, name, bio, avatar_url })
           .where('id', '=', userId)
-          .execute()
-        if (!user) throw new Error('invariant: undefined user in POST /settings/profile')
+          .returningAll()
+          .executeTakeFirstOrThrow()
         res.format({
           json: () =>
             res.json({
@@ -332,7 +345,7 @@ const app = express()
           json: () => res.json({ formMessages: ['password updated'] } satisfies FormResult),
           html: () => res.redirect(VITE_ROOT_URL + '/settings'),
         })
-      } catch (err) {
+      } catch (err: any) {
         log.error('%O', err)
         if (err.errcode === 'CREDS')
           return res.status(500).json({
@@ -426,30 +439,45 @@ const app = express()
   .post('/reset-password', async (req, res) => {
     const body = z
       .object({
-        user_id: z.string().uuid(),
+        userId: z.string().uuid(),
         token: z.string(),
-        password: z.string(),
+        password: passwordSpec,
+        confirmPassword: z.string(),
       })
+      .refine(data => data.password === data.confirmPassword, 'passwords must match')
       .safeParse(req.body)
     if (!body.success) return res.status(400).json(body.error.flatten() satisfies FormResult)
     try {
-      const result = await rootDb
+      const session = await rootDb
         .selectFrom(eb =>
           rootDb
-            .fn<{
-              reset_password: boolean | null
-            }>('app_private.reset_password', [
-              eb.val(body.data.user_id),
+            .fn<Session>('app_private.reset_password', [
+              eb.val(body.data.userId),
               eb.val(body.data.token),
               eb.val(body.data.password),
             ])
             .as('reset_password'),
         )
         .selectAll()
+        .where(eb => eb.not(eb('reset_password.uuid', 'is', null)))
         .executeTakeFirst()
-      res.json(result)
+      if (!session) return res.json({ formErrors: ['Failed to reset password'] } satisfies FormResult)
+      log.debug('reset session: %O', session)
+      req.session.user = {
+        session_id: session.uuid,
+        user_id: session.user_id,
+      }
+      const user = await rootDb
+        .selectFrom('app_public.users')
+        .where('id', '=', session.user_id)
+        .selectAll()
+        .executeTakeFirstOrThrow()
+      res.format({
+        json: () => res.json({ payload: { user } } satisfies FormResult),
+        html: () => res.redirect(VITE_ROOT_URL + '/'),
+      })
     } catch (err) {
-      log.error(err)
+      log.error('%O', err)
       res.status(500).json({ formErrors: ['Failed to reset password'] } satisfies FormResult)
     }
   })
@@ -468,7 +496,7 @@ const app = express()
           tx
             .fn<{
               verify_email: boolean | null
-            }>('app_public.verify_email', [eb.val(body.data.token)])
+            }>('app_public.verify_email', [eb.val(body.data.id), eb.val(body.data.token)])
             .as('verify_email'),
         )
         .selectAll()

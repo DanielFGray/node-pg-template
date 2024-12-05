@@ -1,6 +1,6 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { api } from './api.js'
-import type { FormResult } from './types.js'
+import type { FormResult, User } from './types.js'
 import { useNavigate, useSearchParams } from 'react-router'
 import { useAuth } from './Auth.ctx.js'
 
@@ -19,10 +19,10 @@ export function ResetPass() {
         onSubmit={ev => {
           ev.preventDefault()
           const body = new URLSearchParams(new FormData(ev.currentTarget) as any)
-          api<FormResult<User>>('/reset-password', { method: 'post', body }).then(res => {
+          api<FormResult<{ user: User }>>('/reset-password', { method: 'post', body }).then(res => {
             if (!res.ok) return setResponse(res.error)
-            if (res.data?.payload?.id) {
-              auth.setUser(res.data.payload)
+            if (res.data.payload?.user) {
+              auth.setUser(res.data.payload.user)
               navigate(params.get('redirectTo') || '/')
             }
           })
