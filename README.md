@@ -1,8 +1,6 @@
-# react-pg-template
+# node-pg-template
 
-## Requirements
-
-This uses `docker` and `docker-compose` to manage a Postgres cluster
+using javascript and sql for everything
 
 ## Getting started
 
@@ -10,7 +8,11 @@ This uses `docker` and `docker-compose` to manage a Postgres cluster
 npm run dev
 ```
 
-This will do a number of things, like generate a `.env` file and prompt for passwords, start the Postgres cluster in docker, run migrations, and generate TS types from the database using [kysely](https://kysely.dev/docs/generating-types).
+The `predev` script starts Postgres with Docker, checks to see if it can connect, or runs the `init` script which will generate a `.env` file and prompt for passwords, start the Postgres cluster in docker, run migrations, and generate TypeScript definitions, before finally starting the dev server. Future runs skip `init` after it connects.
+
+## Requirements
+
+The `init` scripts assume you have `docker` and `docker-compose` installed
 
 ## Roadmap
 
