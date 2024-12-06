@@ -1,3 +1,4 @@
+// @ts-check
 /* eslint-disable @typescript-eslint/no-var-requires */
 import lodashTemplate from 'lodash.template'
 import mjml2html from 'mjml'
