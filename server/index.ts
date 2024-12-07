@@ -2,10 +2,8 @@ import express from 'express'
 import morgan from 'morgan'
 import session from 'express-session'
 import ConnectPgSimple from 'connect-pg-simple'
-import pg from 'pg'
-import { Kysely, PostgresDialect, sql, type Transaction } from 'kysely'
-import type { DB } from 'kysely-codegen'
-import Debug from 'debug'
+import { rootDb, rootPool, withAuthContext } from './db.js'
+import { sql } from 'kysely'
 import type { FormResult, Session, User } from '#app/types.js'
 import { randomNumber } from '#lib/index.js'
 import { setTimeout } from 'node:timers/promises'
@@ -13,6 +11,7 @@ import { env } from './assertEnv.js'
 import { z } from 'zod'
 import { GitHub, OAuth2RequestError, OAuth2Tokens, generateState } from 'arctic'
 import { parseCookies, serializeCookie } from 'oslo/cookie'
+import log from './log.js'
 
 declare module 'express-session' {
   interface SessionData {
@@ -27,60 +26,11 @@ const {
   GITHUB_CLIENT_ID,
   GITHUB_CLIENT_SECRET,
   NODE_ENV,
-  DATABASE_URL,
-  AUTH_DATABASE_URL,
-  DATABASE_VISITOR,
   PORT,
   SECRET,
   VITE_ROOT_URL,
 } = env
 
-const appDebug = Debug('app')
-const dbDebug = Debug('db')
-const log = {
-  info: appDebug.extend('info'),
-  debug: appDebug.extend('debug'),
-  error: appDebug.extend('error'),
-  db: {
-    query: dbDebug.extend('query'),
-    result: dbDebug.extend('result'),
-  },
-}
-
-const rootPool = new pg.Pool({ connectionString: DATABASE_URL })
-const rootDb = new Kysely<DB>({
-  dialect: new PostgresDialect({ pool: rootPool }),
-  log(event) {
-    log.db.query(event.query.sql)
-    if (event.level === 'error') log.db.result(event.query.parameters)
-  },
-})
-
-/** bigint */
-const int8TypeId = 20
-pg.types.setTypeParser(int8TypeId, val => {
-  return BigInt(val)
-})
-
-const authPool = new pg.Pool({ connectionString: AUTH_DATABASE_URL })
-const authDb = new Kysely<DB>({
-  dialect: new PostgresDialect({ pool: authPool }),
-  log(event) {
-    log.db.query(event.query.sql)
-  },
-})
-
-async function withAuthContext<R>(req: express.Request, cb: (sql: Transaction<DB>) => R) {
-  const sid = req.session.user?.session_id ?? null
-  return authDb.transaction().execute(async tx => {
-    await sql`
-      select
-        set_config('role', ${DATABASE_VISITOR}, false),
-        set_config('jwt.claims.session_id', ${sid}, true);
-    `.execute(tx)
-    return cb(tx)
-  })
-}
 
 const usernameSpec = z
   .string()
