@@ -8,6 +8,6 @@ export type FormResult<T = unknown> = {
 export type {
   AppPrivateSessions as Session,
   AppPublicUsers as User,
-  AppPublicUserEmails as UserEmails,
-  AppPublicUserAuthentications as UserAuthentications,
+  AppPublicUserEmails as UserEmail,
+  AppPublicUserAuthentications as UserAuthentication,
 } from 'kysely-codegen'

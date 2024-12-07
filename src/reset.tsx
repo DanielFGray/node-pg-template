@@ -21,10 +21,9 @@ export function ResetPass() {
           const body = new URLSearchParams(new FormData(ev.currentTarget) as any)
           api<FormResult<{ user: User }>>('/reset-password', { method: 'post', body }).then(res => {
             if (!res.ok) return setResponse(res.error)
-            if (res.data.payload?.user) {
-              auth.setUser(res.data.payload.user)
-              navigate(params.get('redirectTo') || '/')
-            }
+            setResponse(res.data)
+            auth.setUser(res.data.payload.user)
+            navigate(params.get('redirectTo') || '/')
           })
         }}
       >

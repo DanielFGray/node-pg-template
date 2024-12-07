@@ -4,7 +4,7 @@ import session from 'express-session'
 import ConnectPgSimple from 'connect-pg-simple'
 import { rootDb, rootPool, withAuthContext } from './db.js'
 import { sql } from 'kysely'
-import type { FormResult, Session, User } from '#app/types.js'
+import type { FormResult, Session, User, UserEmail } from '#app/types.js'
 import { randomNumber } from '#lib/index.js'
 import { setTimeout } from 'node:timers/promises'
 import { env } from './assertEnv.js'
@@ -440,7 +440,7 @@ const app = express()
         .where(eb => eb.not(eb('reset_password.uuid', 'is', null)))
         .executeTakeFirst()
       if (!session)
-        return res.json({ formErrors: ['Failed to reset password'] } satisfies FormResult)
+        return res.json({ fieldErrors: { token: ['invalid token'] } } satisfies FormResult)
       log.debug('reset session: %O', session)
       req.session.user = {
         session_id: session.uuid,
@@ -496,11 +496,11 @@ const app = express()
     return withAuthContext(req, async tx => {
       const result = await tx
         .selectFrom(eb =>
-          tx.fn<User>('app_public.make_email_primary', [eb.val(body.data.emailId)]).as('u'),
+          tx.fn<UserEmail>('app_public.make_email_primary', [eb.val(body.data.emailId)]).as('u'),
         )
         .selectAll()
         .where(eb => eb.not(eb('id', 'is', null)))
-        .executeTakeFirst()
+        .executeTakeFirstOrThrow()
       res.json({ payload: result } satisfies FormResult)
     })
   })
@@ -535,7 +535,11 @@ const app = express()
         .deleteFrom('app_public.user_authentications')
         .where('id', '=', body.data.id)
         .executeTakeFirst()
-      res.json({ payload: numDeletedRows > 0 } satisfies FormResult)
+      if (numDeletedRows < 1)
+        return res
+          .status(400)
+          .json({ formErrors: ['failed to unlink account'] } satisfies FormResult)
+      res.json({ payload: { success: true } } satisfies FormResult)
     })
   })
 
