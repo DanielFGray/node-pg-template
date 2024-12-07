@@ -70,7 +70,7 @@ const app = express()
       .object({
         username: usernameSpec,
         password: passwordSpec,
-        email: z.string().email(),
+        email: z.string().optional(),
         confirmPassword: z.string(),
       })
       .strict()
@@ -85,7 +85,7 @@ const app = express()
             sql<User>`
               app_private.really_create_user(
                 username => ${username}::citext,
-                email => ${email}::citext,
+                email => ${email || null},
                 email_is_verified => false,
                 name => null,
                 avatar_url => null,

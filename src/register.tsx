@@ -34,26 +34,6 @@ export default function Register() {
           <legend>register</legend>
 
           <div className="form-row">
-            <label htmlFor="register-email-input" data-cy="register-email-label">
-              email:
-            </label>
-            <input
-              type="text"
-              name="email"
-              id="register-email-input"
-              autoComplete="email"
-              aria-describedby="register-email-help"
-              aria-invalid={Boolean(response?.fieldErrors?.email)}
-              data-cy="register-email-input"
-            />
-            {response?.fieldErrors?.email?.map(e => (
-              <div className="field-error" key={e} id="register-email-help">
-                {e}
-              </div>
-            ))}
-          </div>
-
-          <div className="form-row">
             <label htmlFor="register-username-input" data-cy="register-username-label">
               username:
             </label>
@@ -68,6 +48,26 @@ export default function Register() {
             />
             {response?.fieldErrors?.username?.map(e => (
               <div className="field-error" key={e} id="register-username-help">
+                {e}
+              </div>
+            ))}
+          </div>
+
+          <div className="form-row">
+            <label htmlFor="register-email-input" data-cy="register-email-label">
+              email:
+            </label>
+            <input
+              type="text"
+              name="email"
+              id="register-email-input"
+              autoComplete="email"
+              aria-describedby="register-email-help"
+              aria-invalid={Boolean(response?.fieldErrors?.email)}
+              data-cy="register-email-input"
+            />
+            {response?.fieldErrors?.email?.map(e => (
+              <div className="field-error" key={e} id="register-email-help">
                 {e}
               </div>
             ))}

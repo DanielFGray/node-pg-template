@@ -554,10 +554,10 @@ grant execute on function app_public.change_password(text, text) to :DATABASE_VI
 
 create function app_private.really_create_user(
   username citext,
-  email text,
-  email_is_verified bool,
   name text,
   avatar_url text,
+  email_is_verified bool,
+  email text default null,
   password text default null
 ) returns app_public.users as $$
 declare
@@ -567,9 +567,9 @@ begin
   -- if password is not null then
   --   perform app_private.assert_valid_password(password);
   -- end if;
-  if email is null then
-    raise exception 'Email is required' using errcode = 'MODAT';
-  end if;
+  -- if email is null then
+  --   raise exception 'Email is required' using errcode = 'MODAT';
+  -- end if;
 
   -- Insert the new user
   insert into app_public.users (username, name, avatar_url) values
@@ -577,8 +577,10 @@ begin
     returning * into v_user;
 
   -- Add the user's email
-  insert into app_public.user_emails (user_id, email, is_verified, is_primary) values
-    (v_user.id, email, email_is_verified, email_is_verified);
+  if email is not null then
+    insert into app_public.user_emails (user_id, email, is_verified, is_primary) values
+      (v_user.id, email, email_is_verified, email_is_verified);
+  end if;
 
   -- Store the password
   if password is not null then
@@ -594,7 +596,7 @@ begin
 end;
 $$ language plpgsql volatile set search_path to pg_catalog, public, pg_temp;
 
-comment on function app_private.really_create_user(username citext, email text, email_is_verified bool, name text, avatar_url text, password text) is
+comment on function app_private.really_create_user(username citext, name text, avatar_url text, email_is_verified bool, email text, password text) is
   E'Creates a user account. All arguments are optional, it trusts the calling method to perform sanitisation.';
 
 /**********/
