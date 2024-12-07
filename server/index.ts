@@ -22,15 +22,7 @@ declare module 'express-session' {
   }
 }
 
-const {
-  GITHUB_CLIENT_ID,
-  GITHUB_CLIENT_SECRET,
-  NODE_ENV,
-  PORT,
-  SECRET,
-  VITE_ROOT_URL,
-} = env
-
+const rootUrl = env.VITE_ROOT_URL
 
 const usernameSpec = z
   .string()
@@ -50,7 +42,7 @@ const cookieMaxAge = 7 * DAY
 const PgStore = ConnectPgSimple(session)
 
 const app = express()
-  .use(morgan(NODE_ENV === 'production' ? 'common' : 'dev'))
+  .use(morgan(env.NODE_ENV === 'production' ? 'common' : 'dev'))
   .use(express.urlencoded({ extended: false }))
 
   .use(
@@ -69,7 +61,7 @@ const app = express()
         schemaName: 'app_private',
         tableName: 'connect_pg_simple_sessions',
       }),
-      secret: SECRET,
+      secret: env.SECRET,
     }),
   )
 
@@ -111,7 +103,8 @@ const app = express()
         log.info('new user:', user.username)
         res.format({
           json: () => res.json({ payload: user } satisfies FormResult),
-          html: () => res.redirect(VITE_ROOT_URL + decodeURIComponent(req.query.redirectTo ?? '/')),
+          html: () =>
+            res.redirect(rootUrl + decodeURIComponent(String(req.query.redirectTo) ?? '/')),
         })
       } catch (err: any) {
         if (err.code === '23505') {
@@ -159,12 +152,14 @@ const app = express()
             .where('id', '=', eb => eb.fn('app_public.current_user_id', []))
             .selectAll()
             .executeTakeFirst()
+          const redir = req.query.redirectTo?.toString().startsWith('/')
+            ? decodeURIComponent(req.query.redirectTo?.toString())
+            : '/'
           res.format({
             json: () => res.json({ payload: user ?? null } satisfies FormResult),
-            html: () => res.redirect(VITE_ROOT_URL + decodeURIComponent(req.query.redirectTo ?? '/')),
+            html: () => res.redirect(rootUrl + redir),
           })
         })
-        res.json({ payload: session.user_id } satisfies FormResult)
       } catch (err) {
         log.error('%O', err)
         res.status(500).json({
@@ -196,7 +191,7 @@ const app = express()
           ) _a,
           lateral (
             select
-              json_agg(e.*) as emails
+              json_agg(e.* order by created_at) as emails
             from
               app_public.user_emails e
             where
@@ -208,6 +203,48 @@ const app = express()
       res.format({
         json: () => res.json({ payload: settings } satisfies FormResult),
       })
+    })
+  })
+
+  .delete('/settings/email', (req, res) => {
+    if (!req.session.user?.user_id)
+      return res
+        .status(401)
+        .json({ formErrors: ['you must be logged in to do that!'] } satisfies FormResult)
+    log.debug(req.body)
+    const body = z.object({ emailId: z.string().uuid() }).safeParse(req.body)
+    if (!body.success) return res.status(400).json(body.error.flatten() satisfies FormResult)
+    return withAuthContext(req, async tx => {
+      try {
+        const result = await tx
+          .deleteFrom('app_public.user_emails')
+          .where('id', '=', body.data.emailId)
+          .returningAll()
+          .execute()
+        res.json({ payload: result } satisfies FormResult)
+      } catch (err) {
+        log.error('%O', err)
+        res.status(500).json({
+          formErrors: ['there was an error processing your request'],
+        } satisfies FormResult)
+      }
+    })
+  })
+
+  .post('/settings/email', (req, res) => {
+    if (!req.session.user?.user_id)
+      return res
+        .status(401)
+        .json({ formErrors: ['you must be logged in to do that!'] } satisfies FormResult)
+    const body = z.object({ email: z.string().email() }).safeParse(req.body)
+    if (!body.success) return res.status(400).json(body.error.flatten() satisfies FormResult)
+    return withAuthContext(req, async tx => {
+      const result = await tx
+        .insertInto('app_public.user_emails')
+        .values({ email: body.data.email })
+        .returningAll()
+        .execute()
+      res.json({ payload: result } satisfies FormResult)
     })
   })
 
@@ -243,7 +280,7 @@ const app = express()
               formMessages: ['profile updated'],
               payload: user,
             } satisfies FormResult),
-          html: () => res.redirect(VITE_ROOT_URL + '/settings'),
+          html: () => res.redirect(rootUrl + '/settings'),
         })
       } catch (err: any) {
         if (err.code === '23505') {
@@ -281,25 +318,22 @@ const app = express()
     return withAuthContext(req, async tx => {
       try {
         await tx
-          .selectFrom(eb =>
-            tx
-              .fn('app_public.change_password', [
-                eb.val(body.data.oldPassword),
-                eb.val(body.data.newPassword),
-              ])
-              .as('change_password'),
+          .selectFrom(
+            sql`app_public.change_password, ${body.data.oldPassword}, $(body.data.newPassword)`.as(
+              'change_password',
+            ),
           )
           .selectAll(['change_password'])
           .execute()
         res.format({
           json: () => res.json({ formMessages: ['password updated'] } satisfies FormResult),
-          html: () => res.redirect(VITE_ROOT_URL + '/settings'),
+          html: () => res.redirect(rootUrl + '/settings'),
         })
       } catch (err: any) {
         log.error('%O', err)
         if (err.errcode === 'CREDS')
-          return res.status(500).json({
-            formErrors: ['there was an error processing your request'],
+          return res.status(400).json({
+            formErrors: ['your previous password was incorrect'],
           } satisfies FormResult)
         res.status(500).json({
           formErrors: ['there was an error processing your request'],
@@ -328,12 +362,10 @@ const app = express()
       try {
         if (body?.token) {
           const result = await tx
-            .selectFrom(eb =>
-              tx
-                .fn<{
-                  confirm_account_deletion: boolean | null
-                }>('app_public.confirm_account_deletion', [eb.val(body.token)])
-                .as('confirm_account_deletion'),
+            .selectFrom(
+              sql<{
+                confirm_account_deletion: boolean | null
+              }>`app_public.confirm_account_deletion(body.token)`.as('confirm_account_deletion'),
             )
             .selectAll()
             .executeTakeFirstOrThrow()
@@ -350,18 +382,16 @@ const app = express()
               }
               res.format({
                 json: () => res.json({ payload: result }),
-                html: () => res.redirect(VITE_ROOT_URL),
+                html: () => res.redirect(rootUrl),
               })
             })
           })
         } else {
           const result = await tx
             .selectFrom(
-              tx
-                .fn<{
-                  request_account_deletion: unknown | null
-                }>('app_public.request_account_deletion')
-                .as('request_account_deletion'),
+              sql<{
+                request_account_deletion: unknown | null
+              }>`app_public.request_account_deletion()`.as('request_account_deletion'),
             )
             .selectAll()
             .executeTakeFirst()
@@ -378,9 +408,7 @@ const app = express()
     const body = z.object({ email: z.string().email() }).safeParse(req.body)
     if (!body.success) return res.status(400).json(body.error.flatten() satisfies FormResult)
     await rootDb
-      .selectFrom(eb =>
-        rootDb.fn('app_public.forgot_password', [eb.val(body.data.email)]).as('forgot_password'),
-      )
+      .selectFrom(sql`app_public.forgot_password(${body.data.email})`.as('forgot_password'))
       .selectAll()
       .execute()
     res.json({ formMessages: ['Password reset email sent'] } satisfies FormResult)
@@ -411,7 +439,8 @@ const app = express()
         .selectAll()
         .where(eb => eb.not(eb('reset_password.uuid', 'is', null)))
         .executeTakeFirst()
-      if (!session) return res.json({ formErrors: ['Failed to reset password'] } satisfies FormResult)
+      if (!session)
+        return res.json({ formErrors: ['Failed to reset password'] } satisfies FormResult)
       log.debug('reset session: %O', session)
       req.session.user = {
         session_id: session.uuid,
@@ -424,7 +453,7 @@ const app = express()
         .executeTakeFirstOrThrow()
       res.format({
         json: () => res.json({ payload: { user } } satisfies FormResult),
-        html: () => res.redirect(VITE_ROOT_URL + '/'),
+        html: () => res.redirect(rootUrl + '/'),
       })
     } catch (err) {
       log.error('%O', err)
@@ -441,17 +470,21 @@ const app = express()
       .safeParse(req.body)
     if (!body.success) return res.status(400).json(body.error.flatten() satisfies FormResult)
     return withAuthContext(req, async tx => {
-      const result = await tx
-        .selectFrom(eb =>
-          tx
-            .fn<{
-              verify_email: boolean | null
-            }>('app_public.verify_email', [eb.val(body.data.id), eb.val(body.data.token)])
-            .as('verify_email'),
-        )
-        .selectAll()
-        .execute()
-      res.json({ payload: result } satisfies FormResult)
+      try {
+        const result = await tx
+          .selectFrom(eb =>
+            tx
+              .fn<{
+                verify_email: boolean | null
+              }>('app_public.verify_email', [eb.val(body.data.id), eb.val(body.data.token)])
+              .as('verify_email'),
+          )
+          .selectAll()
+          .executeTakeFirstOrThrow()
+        res.json({ payload: result } satisfies FormResult)
+      } catch (e) {
+        res.json({ formErrors: ['failed to verify email'] } satisfies FormResult)
+      }
     })
   })
 
@@ -518,29 +551,29 @@ const app = express()
         if (err) next(err)
         res.format({
           json: () => res.json(null),
-          html: () => res.redirect(VITE_ROOT_URL),
+          html: () => res.redirect(rootUrl),
         })
       })
     })
   })
 
-if (!(GITHUB_CLIENT_ID && GITHUB_CLIENT_SECRET)) {
+if (!(env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET)) {
   log.info('GitHub OAuth is not configured')
 } else {
   const oauthProviders = {
     github: new GitHub(
-      GITHUB_CLIENT_ID,
-      GITHUB_CLIENT_SECRET,
-      `${VITE_ROOT_URL}/auth/github/callback`,
+      env.GITHUB_CLIENT_ID,
+      env.GITHUB_CLIENT_SECRET,
+      `${rootUrl}/auth/github/callback`,
     ),
   } as const
 
   const providerSpec = z.literal('github')
 
   app.get('/auth/:provider', (req, res) => {
-    const params = z.object({ params: providerSpec }).safeParse({ params: req.params.provider })
+    const params = providerSpec.safeParse(req.params.provider)
     if (!params.success) return res.status(400).json(params.error.flatten() satisfies FormResult)
-    const provider = oauthProviders.github
+    const provider = oauthProviders[params.data]
     const state = generateState()
     const url = provider.createAuthorizationURL(state, ['user:email'])
     res
@@ -548,7 +581,7 @@ if (!(GITHUB_CLIENT_ID && GITHUB_CLIENT_SECRET)) {
         'Set-Cookie',
         serializeCookie('github_oauth_state', state, {
           path: '/',
-          secure: NODE_ENV === 'production',
+          secure: env.NODE_ENV === 'production',
           httpOnly: true,
           maxAge: 60 * 10,
           sameSite: 'lax',
@@ -558,13 +591,16 @@ if (!(GITHUB_CLIENT_ID && GITHUB_CLIENT_SECRET)) {
   })
 
   app.get('/auth/:provider/callback', async (req, res) => {
-    const params = z.object({ params: providerSpec }).safeParse({ params: req.params.provider })
+    const params = providerSpec.safeParse(req.params.provider)
     if (!params.success) return res.status(400).json(params.error.flatten() satisfies FormResult)
     const code = req.query.code?.toString() ?? null
     const state = req.query.state?.toString() ?? null
     const storedState = parseCookies(req.headers.cookie ?? '').get('github_oauth_state') ?? null
     if (!code || !state || !storedState || state !== storedState) return res.status(400).end()
-    const redir = req.query.redirectTo?.toString() ?? '/'
+    const redir = req.query.redirectTo?.toString().startsWith('/')
+      ? decodeURIComponent(req.query.redirectTo?.toString())
+      : '/'
+    log.debug('oauth redirect to %s', redir)
     try {
       const tokens: { data: OAuth2Tokens } =
         await oauthProviders.github.validateAuthorizationCode(code)
@@ -607,7 +643,7 @@ if (!(GITHUB_CLIENT_ID && GITHUB_CLIENT_SECRET)) {
               rootDb
                 .fn<User>('app_private.link_or_register_user', [
                   sql`f_user_id => ${req.session.user?.user_id ?? null}`,
-                  sql`f_service => ${req.params.provider}`,
+                  sql`f_service => ${params.data}`,
                   sql`f_identifier => ${githubUser.username}`,
                   sql`f_profile => ${JSON.stringify(githubUser)}`,
                   sql`f_auth_details => ${JSON.stringify(tokens)}`,
@@ -620,16 +656,15 @@ if (!(GITHUB_CLIENT_ID && GITHUB_CLIENT_SECRET)) {
         .values(db => ({ user_id: db.selectFrom('create_user').select(['id']) }))
         .returning(['uuid', 'user_id'])
         .executeTakeFirstOrThrow()
-      log.debug(session)
-      req.session.user = {
-        session_id: session.uuid,
-        user_id: session.user_id,
+      if (!req.session.user) {
+        req.session.user = {
+          session_id: session.uuid,
+          user_id: session.user_id,
+        }
       }
-
-      log.debug('new user %O', githubUser.username)
       res.format({
         json: () => res.json({ payload: { user_id: session.user_id } } satisfies FormResult),
-        html: () => res.redirect(VITE_ROOT_URL + redir ? decodeURIComponent(redir!) : ''),
+        html: () => res.redirect(rootUrl + redir ? decodeURIComponent(redir!) : ''),
       })
     } catch (err) {
       if (err instanceof OAuth2RequestError && err.message === 'bad_verification_code') {
@@ -645,4 +680,4 @@ if (process.env.NODE_ENV !== 'production') {
   import('./cypress.js').then(m => m.installCypressCommands(app))
 }
 
-app.listen(PORT, () => console.log(`server listening on port ${PORT}`))
+app.listen(env.PORT, () => log.info(`server listening on port ${env.PORT}`))

@@ -34,6 +34,10 @@ ul {
   flex-direction: row;
 }
 
+.justify-between {
+  justify-content: space-between;
+}
+
 .p-2 {
   padding: 0.5rem;
 }

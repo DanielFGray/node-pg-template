@@ -26,7 +26,7 @@ module.exports = {
   rules: {
     '@typescript-eslint/require-await': 'warn',
     'arrow-parens': ['error', 'as-needed'],
-    'indent': ['error', 2, { flatTernaryExpressions: true }],
+    'indent': 'off',
     'no-nested-ternary': 'off',
     'no-unexpected-multiline': 'error',
     'no-unused-vars': 'off',

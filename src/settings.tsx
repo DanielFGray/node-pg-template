@@ -14,9 +14,9 @@ type SettingsData = {
 
 export default function Settings() {
   const auth = useAuth()
-  if (!auth.user) throw new Error('you shouldn\'t be here')
+  if (!auth.user) throw new Error("you shouldn't be here")
   const [settings, setEmail] = useState<SettingsData>()
-  function refetch() {
+  async function refetch() {
     return api<FormResult<SettingsData>>('/settings').then(res => {
       if (res.ok && res.data?.payload) {
         setEmail(res.data.payload)
@@ -32,7 +32,7 @@ export default function Settings() {
     <>
       <ProfileSettings {...data} />
       <PasswordSettings {...data} />
-      <EmailSettings {...data} />
+      <EmailSettings {...data} refetch={refetch} />
       <LinkedAccounts {...data} refetch={refetch} />
       <DeleteAccount />
     </>
@@ -83,7 +83,7 @@ export function ProfileSettings({ currentUser }: { currentUser: User }) {
             type="text"
             name="avatar_url"
             id="settings-avatar_url-input"
-            defaultValue={currentUser.avatar_url}
+            defaultValue={currentUser.avatar_url ?? ''}
             aria-describedby="settings-avatar_url-help"
             aria-invalid={Boolean(response?.fieldErrors?.avatar_url)}
           />
@@ -99,7 +99,7 @@ export function ProfileSettings({ currentUser }: { currentUser: User }) {
           <textarea
             name="bio"
             id="settings-bio-input"
-            defaultValue={currentUser.bio}
+            defaultValue={currentUser.bio ?? ''}
             aria-describedby="settings-bio-help"
             aria-invalid={Boolean(response?.fieldErrors?.bio)}
           />
@@ -138,7 +138,6 @@ export function PasswordSettings({ has_password }: SettingsData) {
         const body = new URLSearchParams(new FormData(ev.currentTarget) as any)
         api<FormResult>('/change-password', { method: 'post', body }).then(res => {
           if (!res.ok) return setResponse(res.error)
-          console.log(res)
           setResponse(res.data)
         })
       }}
@@ -221,9 +220,11 @@ export function PasswordSettings({ has_password }: SettingsData) {
 function EmailSettings({
   currentUser,
   emails,
+  refetch,
 }: {
   currentUser: User
   emails?: UserEmail[] | undefined
+  refetch: () => void
 }) {
   if (!emails) return null
   return (
@@ -231,7 +232,12 @@ function EmailSettings({
       <legend>email settings</legend>
       <ul data-cy="email-settings-list">
         {emails.map(email => (
-          <Email key={email.id} email={email} hasOtherEmails={Number(emails.length) > 1} />
+          <Email
+            key={email.id}
+            refetch={refetch}
+            email={email}
+            hasOtherEmails={Number(emails.length) > 1}
+          />
         ))}
       </ul>
       <div>
@@ -242,43 +248,41 @@ function EmailSettings({
             email verification.
           </small>
         )}
-        <AddEmailForm />
+        <AddEmailForm refetch={refetch} />
       </div>
     </fieldset>
   )
 }
 
-function Email({ email, hasOtherEmails }: { email: UserEmail; hasOtherEmails: boolean }) {
+function Email({
+  email,
+  hasOtherEmails,
+  refetch,
+}: {
+  email: UserEmail
+  hasOtherEmails: boolean
+  refetch: () => void
+}) {
   const [response, setResponse] = useState<FormResult>()
   const canDelete = !email.is_primary && hasOtherEmails
   return (
-    <li>
+    <li className="flex-row justify-between" data-cy={`email-settings-item-${email.email.replace(/[^a-zA-Z0-9]/g, '-')}`}>
       <div>
         {`✉️ ${email.email} `}
-        <div>
-          <span
-            title={
-              email.is_verified
-                ? 'Verified'
-                : 'Pending verification (please check your inbox / spam folder'
-            }
-          >
-            {email.is_verified ? '✅ ' : <span>unverified</span>}
-          </span>
-          Added {new Date(Date.parse(email.created_at)).toLocaleString()}
-        </div>
-      </div>
-      <form
-        method="post"
-        onSubmit={ev => {
-          ev.preventDefault()
-          const body = new URLSearchParams(new FormData(ev.currentTarget) as any)
-          api<FormResult>('/resend-email-verification-code', { method: 'post', body }).then(res => {
-            setResponse(res.data)
-          })
-        }}
-      >
-        <input type="hidden" name="emailId" value={email.id} />
+        <span
+          title={
+            email.is_verified
+              ? 'Verified'
+              : 'Pending verification (please check your inbox / spam folder'
+          }
+        >
+          {email.is_verified ? (
+            '✅ '
+          ) : (
+            <span data-cy="email-settings-indicator-unverified">(unverified)</span>
+          )}
+        </span>
+        <div>Added {new Date(Date.parse(email.created_at)).toLocaleString()}</div>
         {response?.formErrors?.map(e => (
           <div key={e} className="field-error">
             {e}
@@ -289,7 +293,48 @@ function Email({ email, hasOtherEmails }: { email: UserEmail; hasOtherEmails: bo
             {e}
           </div>
         ))}
-        {email.is_primary && <span className="primary_indicator">Primary</span>}
+      </div>
+      <form
+        method="post"
+        onSubmit={ev => {
+          ev.preventDefault()
+          const formdata = new FormData(ev.currentTarget)
+          const body = new URLSearchParams(formdata as any)
+          const type = (ev.nativeEvent.submitter as HTMLButtonElement).getAttribute('value')
+          switch (type) {
+            case 'resendValidation': {
+              return api<FormResult>('/resend-email-verification-code', {
+                method: 'post',
+                body,
+              }).then(res => {
+                if (!res.ok) return setResponse(res.error)
+                setResponse(res.data)
+                refetch()
+              })
+            }
+            case 'deleteEmail': {
+              return api<FormResult>('/settings/email', { method: 'delete', body }).then(res => {
+                if (!res.ok) return setResponse(res.error)
+                setResponse(res.data)
+                refetch()
+              })
+            }
+            case 'makePrimary': {
+              return api<FormResult>('/make-email-primary', { method: 'post', body }).then(res => {
+                if (!res.ok) return setResponse(res.error)
+                setResponse(res.data)
+                refetch()
+              })
+            }
+          }
+        }}
+      >
+        <input type="hidden" name="emailId" value={email.id} />
+        {email.is_primary && (
+          <span className="primary_indicator" data-cy="email-settings-indicator-primary">
+            Primary
+          </span>
+        )}
         {canDelete && (
           <button
             type="submit"
@@ -301,12 +346,13 @@ function Email({ email, hasOtherEmails }: { email: UserEmail; hasOtherEmails: bo
           </button>
         )}
         {!email.is_verified && (
-          <button name="type" value="resendValidation">
+          <button type="submit" name="type" value="resendValidation">
             Resend verification
           </button>
         )}
         {email.is_verified && !email.is_primary && (
           <button
+            type="submit"
             name="type"
             value="makePrimary"
             data-cy="email-settings-button-makeprimary"
@@ -319,7 +365,7 @@ function Email({ email, hasOtherEmails }: { email: UserEmail; hasOtherEmails: bo
   )
 }
 
-function AddEmailForm() {
+function AddEmailForm({ refetch }: { refetch: () => void }) {
   const [params] = useSearchParams()
   const [showForm, setShowForm] = useState<boolean>(Boolean(params.get('showAddEmail') ?? false))
   const [response, setResponse] = useState<FormResult>()
@@ -344,7 +390,11 @@ function AddEmailForm() {
         ev.preventDefault()
         const body = new URLSearchParams(new FormData(ev.currentTarget) as any)
         api<FormResult>('/settings/email', { method: 'post', body }).then(res => {
+          if (!res.ok) return setResponse(res.error)
           setResponse(res.data)
+          refetch()
+          ev.target.reset()
+          setShowForm(false)
         })
       }}
     >
@@ -352,7 +402,7 @@ function AddEmailForm() {
         <label htmlFor="settings-new-email-input">new email:</label>
         <input
           type="email"
-          name="newEmail"
+          name="email"
           id="settings-new-email-input"
           minLength={6}
           autoComplete="email"

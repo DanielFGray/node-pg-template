@@ -8,7 +8,7 @@ export default function Verify() {
   const id = params.get('id')
   const token = params.get('token')
 
-  const [message, setResponse] = useState<string>(() => {
+  const [response, setResponse] = useState<FormResult<{ verify_email: boolean }>>(() => {
     if (!(id && token)) return 'Missing id or token'
     return ''
   })
@@ -19,12 +19,30 @@ export default function Verify() {
         ['id', id],
         ['token', token],
       ])
-      api<FormResult>('/verify-email', { method: 'post', body }).then(res => {
-        if (!res.ok) return setResponse('Incorrect token, please check and try again')
-        setResponse('Thank you for verifying your email address. You may now close this window.')
-      })
+      api<FormResult<{ verify_email: boolean }>>('/verify-email', { method: 'post', body }).then(
+        res => {
+          if (!res.ok) return setResponse(res.error)
+          setResponse(res.data)
+        },
+      )
     }
   }, [id, token])
 
-  return <div className="items-center p-4">{message}</div>
+  return (
+    <div className="items-center p-4">
+      {response.payload?.verify_email && (
+        <div data-cy="email-verified">Thank you for verifying your email address.</div>
+      )}
+      {response?.formMessages?.map(e => (
+        <div className="field-error" key={e}>
+          {e}
+        </div>
+      ))}
+      {response?.formErrors?.map(e => (
+        <div className="field-error" key={e}>
+          {e}
+        </div>
+      ))}
+    </div>
+  )
 }
