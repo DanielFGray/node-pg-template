@@ -332,7 +332,7 @@ const app = express()
       try {
         await tx
           .selectFrom(
-            sql`app_public.change_password, ${body.data.oldPassword}, $(body.data.newPassword)`.as(
+            sql`app_public.change_password(${body.data.oldPassword}, ${body.data.newPassword})`.as(
               'change_password',
             ),
           )
@@ -344,7 +344,7 @@ const app = express()
         })
       } catch (err: any) {
         log.error('%O', err)
-        if (err.errcode === 'CREDS')
+        if (err.code === 'CREDS')
           return res.status(400).json({
             formErrors: ['your previous password was incorrect'],
           } satisfies FormResult)
