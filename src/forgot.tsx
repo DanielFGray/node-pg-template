@@ -36,6 +36,7 @@ export default function ForgotPassword() {
             autoComplete="email"
             aria-describedby="register-email-help"
             aria-invalid={Boolean(response?.fieldErrors?.email)}
+            data-cy="forgot-email-input"
           />
           {response?.fieldErrors?.email?.map(e => (
             <div className="field-error" key={e} id="register-email-help">
@@ -55,7 +56,7 @@ export default function ForgotPassword() {
               {e}
             </div>
           ))}
-          <button type="submit">Reset Password</button>
+          <button type="submit" data-cy="forgot-submit-button">Reset Password</button>
         </div>
       </fieldset>
     </form>

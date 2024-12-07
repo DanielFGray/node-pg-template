@@ -180,6 +180,10 @@ async function runCommand(
       res.redirect(redirectTo || '/')
     }, 500)
     return null
+  } else if (command === 'getUserSecrets') {
+    const { username = 'testuser' } = payload
+    const userSecrets = await getUserSecrets(username)
+    return userSecrets
   } else if (command === 'getEmailSecrets') {
     const { email = 'testuser@example.com' } = payload
     const userEmailSecrets = await getUserEmailSecrets(email)
@@ -233,6 +237,21 @@ async function createSession(userId: string) {
     userId,
   ])
   return session
+}
+
+async function getUserSecrets(username: string) {
+  const {
+    rows: [userEmailSecrets],
+  } = await rootPool.query(
+    `
+      select *
+      from app_private.user_secrets
+        join app_public.users on user_id = users.id
+      where username = $1
+    `,
+    [username],
+  )
+  return userEmailSecrets
 }
 
 async function getUserEmailSecrets(email: string) {

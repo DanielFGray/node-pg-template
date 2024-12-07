@@ -80,6 +80,27 @@ function serverCommand(
 }>
 
 /**
+ * Gets the secrets for the specified User, allowing Cypress to perform User
+ * validation. If unspecified, User defaults to `testuser@example.com`.
+ */
+function serverCommand(
+  command: 'getUserSecrets',
+  payload?: { username?: string },
+): Chainable<{
+  user_id: string
+  password_hash: string | null
+  last_login_at: string
+  failed_password_attempts: number
+  first_failed_password_attempt: string | null,
+  reset_password_token: string | null,
+  reset_password_token_generated: string | null,
+  failed_reset_password_attempts: number,
+  first_failed_reset_password_attempt: string | null,
+  delete_account_token: string | null,
+  delete_account_token_generated: string | null
+}>
+
+/**
  * Gets the secrets for the specified email, allowing Cypress to perform email
  * validation. If unspecified, email defaults to `testuser@example.com`.
  */

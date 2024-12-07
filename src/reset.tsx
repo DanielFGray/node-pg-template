@@ -60,6 +60,7 @@ export function ResetPass() {
                 id="reset-token-input"
                 aria-describedby="reset-token-help"
                 aria-invalid={Boolean(response?.fieldErrors?.password)}
+                data-cy="reset-token-input"
               />
               {response?.fieldErrors?.password?.map(e => (
                 <div className="field-error" key={e} id="reset-token-help">
@@ -77,6 +78,7 @@ export function ResetPass() {
               autoComplete="new-password"
               aria-describedby="reset-password-help"
               aria-invalid={Boolean(response?.fieldErrors?.password)}
+              data-cy="reset-password-input"
             />
             {response?.fieldErrors?.password?.map(e => (
               <div className="field-error" key={e} id="reset-password-help">
@@ -94,6 +96,7 @@ export function ResetPass() {
               autoComplete="new-password"
               aria-describedby="reset-confirmpassword-help"
               aria-invalid={Boolean(response?.fieldErrors?.confirmPassword)}
+              data-cy="reset-confirmpassword-input"
             />
             {response?.fieldErrors?.confirmPassword?.map(e => (
               <div className="field-error" key={e} id="reset-confirmpassword-help">
@@ -108,7 +111,7 @@ export function ResetPass() {
                 {e}
               </div>
             ))}
-            <button type="submit">reset password</button>
+            <button type="submit" data-cy="reset-submit-button">reset password</button>
           </div>
         </fieldset>
       </form>

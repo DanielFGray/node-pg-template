@@ -85,7 +85,7 @@ export default function Login() {
             {response?.formErrors && (
               <>
                 {' '}
-                <Link to="/forgot">I forgot my password</Link>
+                <Link to="/forgot" data-cy="login-forgot-link">I forgot my password</Link>
               </>
             )}
           </div>
