@@ -19,10 +19,20 @@ context('Manage emails', () => {
     cy.contains('testuser@example.com').should('exist')
     cy.getCy('email-settings-indicator-unverified').should('not.exist')
 
+    // Action: add existing email
+    cy.getCy('settings-show-add-email-button').click()
+    cy.getCy('settings-new-email-input').type('testuser@example.com')
+    cy.getCy('settings-new-email-submit').click()
+
+    // Assertion
+    cy.getCy('settings-new-email-form').within(() => {
+      cy.contains('already been created').should('exist')
+    })
+
     // Action: add email
-    cy.getCy('settings-new-email-button').click()
+    cy.getCy('settings-new-email-input').clear()
     cy.getCy('settings-new-email-input').type(email)
-    cy.getCy('settings-submit-button').click()
+    cy.getCy('settings-new-email-submit').click()
 
     // Assertion
     cy.getCy('email-settings-list').within(() => {

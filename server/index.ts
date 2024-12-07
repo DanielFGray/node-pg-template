@@ -239,14 +239,27 @@ const app = express()
     const body = z.object({ email: z.string().email() }).safeParse(req.body)
     if (!body.success) return res.status(400).json(body.error.flatten() satisfies FormResult)
     return withAuthContext(req, async tx => {
-      const result = await tx
-        .insertInto('app_public.user_emails')
-        .values({ email: body.data.email })
-        .returningAll()
-        .execute()
-      res.json({ payload: result } satisfies FormResult)
+      try {
+        const result = await tx
+          .insertInto('app_public.user_emails')
+          .values({ email: body.data.email })
+          .returningAll()
+          .execute()
+        res.json({ payload: result } satisfies FormResult)
+      } catch (err) {
+        if (err.code == 'EMTKN') {
+          return res.status(400).json({
+            formErrors: [err.message],
+          } satisfies FormResult)
+        }
+        log.error('%O', err)
+        res.status(500).json({
+          formErrors: ['there was an error processing your request'],
+        } satisfies FormResult)
+      }
     })
   })
+
 
   .post('/me', async (req, res) => {
     if (!req.session.user?.user_id)

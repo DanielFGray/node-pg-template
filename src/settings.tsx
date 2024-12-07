@@ -377,7 +377,7 @@ function AddEmailForm({ refetch }: { refetch: () => void }) {
           setShowForm(true)
         }}
       >
-        <button type="submit" name="showAddEmail" value="1" data-cy="settings-new-email-button">
+        <button type="submit" name="showAddEmail" value="1" data-cy="settings-show-add-email-button">
           Add email
         </button>
       </form>
@@ -386,6 +386,7 @@ function AddEmailForm({ refetch }: { refetch: () => void }) {
   return (
     <form
       method="post"
+      data-cy="settings-new-email-form"
       onSubmit={ev => {
         ev.preventDefault()
         const body = new URLSearchParams(new FormData(ev.currentTarget) as any)
@@ -427,7 +428,7 @@ function AddEmailForm({ refetch }: { refetch: () => void }) {
             {e}
           </div>
         ))}
-        <button type="submit" data-cy="settings-submit-button">
+        <button type="submit" data-cy="settings-new-email-submit">
           add email
         </button>
       </div>
