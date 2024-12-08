@@ -76,6 +76,7 @@
   "devDependencies": {
     "@react-router/dev": "^7.0.2",
     "@total-typescript/tsconfig": "^1.0.4",
+    "@types/connect-pg-simple": "^7.0.3",
     "@types/debug": "^4.1.12",
     "@types/eslint": "^9.6.1",
     "@types/eslint-plugin-jsx-a11y": "^6.10.0",

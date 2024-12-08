@@ -25,7 +25,7 @@ export default function Logout() {
 
         <div>Are you sure you want to log out?</div>
         <div>
-          <input type="submit" value="log out" />
+          <input type="submit" value="log out" data-cy="logout-submit" />
         </div>
       </fieldset>
     </form>

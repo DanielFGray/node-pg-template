@@ -29,7 +29,10 @@ export const authDb = new Kysely<DB>({
   },
 })
 
-export function withAuthContext<R>(req: express.Request, cb: (sql: Transaction<DB>) => Promise<R>): Promise<R> {
+export function withAuthContext<R>(
+  req: express.Request,
+  cb: (sql: Transaction<DB>) => Promise<R>,
+): Promise<R> {
   const sid = req.session.user?.session_id ?? null
   return authDb.transaction().execute(async tx => {
     await sql`

@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { api } from './api.js'
 import type { FormResult, User } from './types.js'
+import { Spinner } from './stubs.js'
 
 type AuthContext = {
   user: User | null
@@ -16,18 +17,18 @@ export function useAuth() {
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<'loading' | User>('loading')
+  const [user, setUser] = useState<'loading' | User | null>('loading')
 
   useEffect(() => {
     api<FormResult<User>>('/me').then(res => {
-      setUser(res.data.payload)
+      setUser(res.data?.payload ?? null)
     })
   }, [])
 
   return (
     <>
       {user === 'loading' ? (
-        'loading...'
+        <Spinner/>
       ) : (
         <ctx.Provider value={{ user, setUser }}>{children}</ctx.Provider>
       )}

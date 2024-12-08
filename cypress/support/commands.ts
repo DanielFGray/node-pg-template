@@ -137,7 +137,7 @@ function login(payload?: {
   username?: string
   name?: string
   verified?: boolean
-  password?: string
+  password?: string | null
   orgs?: [[string, string] | [string, string, boolean]]
 }): Chainable<Window> {
   return cy.visit(

@@ -95,22 +95,22 @@ export default function Register() {
 
           <div className="form-row">
             <label
-              htmlFor="register-confirmpassword-input"
-              data-cy="register-confirmpassword-label"
+              htmlFor="register-confirm-password-input"
+              data-cy="register-confirm-password-label"
             >
               confirm password:
             </label>
             <input
               type="password"
               name="confirmPassword"
-              id="register-confirmpassword-input"
+              id="register-confirm-password-input"
               autoComplete="new-password"
-              aria-describedby="register-confirmpassword-help"
+              aria-describedby="register-confirm-password-help"
               aria-invalid={Boolean(response?.fieldErrors?.confirmPassword)}
-              data-cy="register-confirmpassword-input"
+              data-cy="register-confirm-password-input"
             />
             {response?.fieldErrors?.confirmPassword?.map(e => (
-              <div className="field-error" key={e} id="register-confirmpassword-help">
+              <div className="field-error" key={e} id="register-confirm-password-help">
                 {e}
               </div>
             ))}

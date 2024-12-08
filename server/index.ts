@@ -260,7 +260,6 @@ const app = express()
     })
   })
 
-
   .post('/me', async (req, res) => {
     if (!req.session.user?.user_id)
       return res
@@ -343,11 +342,11 @@ const app = express()
           html: () => res.redirect(rootUrl + '/settings'),
         })
       } catch (err: any) {
-        log.error('%O', err)
         if (err.code === 'CREDS')
           return res.status(400).json({
             formErrors: ['your previous password was incorrect'],
           } satisfies FormResult)
+        log.error('%O', err)
         res.status(500).json({
           formErrors: ['there was an error processing your request'],
         } satisfies FormResult)
@@ -378,7 +377,7 @@ const app = express()
             .selectFrom(
               sql<{
                 confirm_account_deletion: boolean | null
-              }>`app_public.confirm_account_deletion(body.token)`.as('confirm_account_deletion'),
+              }>`app_public.confirm_account_deletion(${body.token})`.as('confirm_account_deletion'),
             )
             .selectAll()
             .executeTakeFirstOrThrow()
@@ -454,7 +453,6 @@ const app = express()
         .executeTakeFirst()
       if (!session)
         return res.json({ fieldErrors: { token: ['invalid token'] } } satisfies FormResult)
-      log.debug('reset session: %O', session)
       req.session.user = {
         session_id: session.uuid,
         user_id: session.user_id,
@@ -619,40 +617,34 @@ if (!(env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET)) {
       : '/'
     log.debug('oauth redirect to %s', redir)
     try {
-      const tokens: { data: OAuth2Tokens } =
-        await oauthProviders.github.validateAuthorizationCode(code)
+      const tokens = await oauthProviders.github.validateAuthorizationCode(code)
       const {
         data: { viewer: githubUser },
-      } = (await (
-        await fetch('https://api.github.com/graphql', {
-          method: 'POST',
-          headers: {
-            // @ts-expect-error type mismatch? docs say tokens.access_token,
-            Authorization: `Bearer ${tokens.data.access_token}`,
-          },
-          body: JSON.stringify({
-            query: `
-              query {
-                viewer {
-                  email
-                  username: login
-                  name
-                  avatar_url: avatarUrl
-                }
-              }
-            `,
+      } = z
+        .object({
+          data: z.object({
+            viewer: z.object({
+              email: z.string(),
+              username: z.string(),
+              name: z.string(),
+              avatar_url: z.string(),
+            }),
           }),
         })
-      ).json()) as {
-        data: {
-          viewer: {
-            email: string
-            username: string
-            name: string
-            avatar_url: string
-          }
-        }
-      }
+        .parse(
+          await (
+            await fetch('https://api.github.com/graphql', {
+              method: 'POST',
+              headers: {
+                // @ts-expect-error docs say tokens.access_token but only this works instead
+                Authorization: `Bearer ${tokens.data.access_token}`,
+              },
+              body: JSON.stringify({
+                query: 'query { viewer { email username: login name avatar_url: avatarUrl } }',
+              }),
+            })
+          ).json(),
+        )
       const session = await rootDb
         .with('create_user', db =>
           db

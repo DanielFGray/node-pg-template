@@ -31,7 +31,7 @@ export default function Settings() {
   return (
     <>
       <ProfileSettings {...data} />
-      <PasswordSettings {...data} />
+      <PasswordSettings {...data} refetch={refetch} />
       <EmailSettings {...data} refetch={refetch} />
       <LinkedAccounts {...data} refetch={refetch} />
       <DeleteAccount />
@@ -128,8 +128,32 @@ export function ProfileSettings({ currentUser }: { currentUser: User }) {
   )
 }
 
-export function PasswordSettings({ has_password }: SettingsData) {
+export function PasswordSettings({
+  has_password,
+  emails,
+  refetch,
+}: SettingsData & { refetch: () => void }) {
   const [response, setResponse] = useState<FormResult>()
+  if (!has_password)
+    return (
+      <form
+        onSubmit={ev => {
+          ev.preventDefault()
+          const primaryEmail = emails.find(e => e.is_primary)?.email
+          if (!primaryEmail) throw new Error('no primary email')
+          const body = new URLSearchParams([['email', primaryEmail]])
+          api<FormResult>('/forgot-password', { method: 'post', body }).then(res => {
+            if (!res.ok) return setResponse(res.error)
+            setResponse(res.data)
+          })
+        }}
+      >
+        <fieldset>
+          <legend>password settings</legend>
+          <button type="submit">reset password</button>
+        </fieldset>
+      </form>
+    )
   return (
     <form
       method="post"
@@ -139,31 +163,32 @@ export function PasswordSettings({ has_password }: SettingsData) {
         api<FormResult>('/change-password', { method: 'post', body }).then(res => {
           if (!res.ok) return setResponse(res.error)
           setResponse(res.data)
+          refetch()
         })
       }}
+      data-cy="settings-password-form"
     >
       <fieldset>
         <legend>password settings</legend>
 
-        {has_password && (
-          <div className="form-row">
-            <label htmlFor="settings-old-password-input">old password:</label>
-            <input
-              type="password"
-              name="oldPassword"
-              id="settings-old-password-input"
-              autoComplete="current-password"
-              minLength={6}
-              aria-describedby="settings-old-password-help"
-              aria-invalid={Boolean(response?.fieldErrors?.oldPassword)}
-            />
-            {response?.fieldErrors?.oldPassword?.map(e => (
-              <div key={e} className="field-error" id="settings-old-password-help">
-                {e}
-              </div>
-            ))}
-          </div>
-        )}
+        <div className="form-row">
+          <label htmlFor="settings-old-password-input">old password:</label>
+          <input
+            type="password"
+            name="oldPassword"
+            id="settings-old-password-input"
+            autoComplete="current-password"
+            minLength={6}
+            aria-describedby="settings-old-password-help"
+            aria-invalid={Boolean(response?.fieldErrors?.oldPassword)}
+            data-cy="settings-old-password-input"
+          />
+          {response?.fieldErrors?.oldPassword?.map(e => (
+            <div key={e} className="field-error" id="settings-old-password-help">
+              {e}
+            </div>
+          ))}
+        </div>
 
         <div className="form-row">
           <label htmlFor="settings-new-password-input">new password:</label>
@@ -175,6 +200,7 @@ export function PasswordSettings({ has_password }: SettingsData) {
             autoComplete="new-password"
             aria-describedby="settings-new-password-help"
             aria-invalid={Boolean(response?.fieldErrors?.newPassword)}
+            data-cy="settings-new-password-input"
           />
           {response?.fieldErrors?.newPassword?.map(e => (
             <div key={e} className="field-error" id="settings-new-password-help">
@@ -184,17 +210,18 @@ export function PasswordSettings({ has_password }: SettingsData) {
         </div>
 
         <div className="form-row">
-          <label htmlFor="settings-old-password-input">confirm password:</label>
+          <label htmlFor="settings-confirm-password-input">confirm password:</label>
           <input
             type="password"
             name="confirmPassword"
-            id="settings-old-password-input"
+            id="settings-confirm-password-input"
             minLength={6}
-            aria-describedby="settings-old-password-help"
+            aria-describedby="settings-confirm-password-help"
             aria-invalid={Boolean(response?.fieldErrors?.confirmPassword)}
+            data-cy="settings-confirm-password-input"
           />
           {response?.fieldErrors?.confirmPassword?.map(e => (
-            <div key={e} className="field-error" id="settings-old-password-help">
+            <div key={e} className="field-error" id="settings-confirm-password-help">
               {e}
             </div>
           ))}
@@ -210,7 +237,9 @@ export function PasswordSettings({ has_password }: SettingsData) {
               {e}
             </div>
           ))}
-          <button type="submit">update</button>
+          <button type="submit" data-cy="settings-change-password-submit">
+            update
+          </button>
         </div>
       </fieldset>
     </form>
@@ -266,7 +295,10 @@ function Email({
   const [response, setResponse] = useState<FormResult>()
   const canDelete = !email.is_primary && hasOtherEmails
   return (
-    <li className="flex-row justify-between" data-cy={`email-settings-item-${email.email.replace(/[^a-zA-Z0-9]/g, '-')}`}>
+    <li
+      className="flex-row justify-between"
+      data-cy={`email-settings-item-${email.email.replace(/[^a-zA-Z0-9]/g, '-')}`}
+    >
       <div>
         {`✉️ ${email.email} `}
         <span
@@ -377,7 +409,12 @@ function AddEmailForm({ refetch }: { refetch: () => void }) {
           setShowForm(true)
         }}
       >
-        <button type="submit" name="showAddEmail" value="1" data-cy="settings-show-add-email-button">
+        <button
+          type="submit"
+          name="showAddEmail"
+          value="1"
+          data-cy="settings-show-add-email-button"
+        >
           Add email
         </button>
       </form>

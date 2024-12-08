@@ -5,7 +5,7 @@ context('Manage emails', () => {
 
   it('can navigate to settings page', () => {
     // Setup
-    cy.login({ redirectTo: '/', verified: true })
+    cy.login({ redirectTo: '/', password: null, verified: true })
 
     // Action
     cy.getCy('nav-settings').click()

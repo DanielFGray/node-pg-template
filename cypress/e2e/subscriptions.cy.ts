@@ -57,7 +57,7 @@ context('Subscriptions', () => {
     cy.getCy('register-username-input').type(testuser.username)
     cy.getCy('register-email-input').type(testuser.email)
     cy.getCy('register-password-input').type(testuser.password)
-    cy.getCy('register-confirmpassword-input').type(testuser.password)
+    cy.getCy('register-confirm-password-input').type(testuser.password)
     cy.getCy('register-submit-button').click()
 
     // Assertions

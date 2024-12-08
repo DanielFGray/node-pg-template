@@ -22,8 +22,10 @@ export function ResetPass() {
           api<FormResult<{ user: User }>>('/reset-password', { method: 'post', body }).then(res => {
             if (!res.ok) return setResponse(res.error)
             setResponse(res.data)
-            auth.setUser(res.data.payload.user)
-            navigate(params.get('redirectTo') || '/')
+            if (res.data.payload) {
+              auth.setUser(res.data.payload.user)
+              navigate(params.get('redirectTo') || '/')
+            }
           })
         }}
       >
@@ -87,18 +89,18 @@ export function ResetPass() {
           </div>
 
           <div className="form-row">
-            <label htmlFor="reset-confirmpassword-input">confirm password:</label>
+            <label htmlFor="reset-confirm-password-input">confirm password:</label>
             <input
               type="password"
               name="confirmPassword"
-              id="reset-confirmpassword-input"
+              id="reset-confirm-password-input"
               autoComplete="new-password"
-              aria-describedby="reset-confirmpassword-help"
+              aria-describedby="reset-confirm-password-help"
               aria-invalid={Boolean(response?.fieldErrors?.confirmPassword)}
-              data-cy="reset-confirmpassword-input"
+              data-cy="reset-confirm-password-input"
             />
             {response?.fieldErrors?.confirmPassword?.map(e => (
-              <div className="field-error" key={e} id="reset-confirmpassword-help">
+              <div className="field-error" key={e} id="reset-confirm-password-help">
                 {e}
               </div>
             ))}

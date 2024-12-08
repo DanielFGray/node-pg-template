@@ -38,7 +38,7 @@ context('reset password', () => {
       cy.visit(Cypress.env('VITE_ROOT_URL') + '/reset?' + new URLSearchParams({ userId }).toString())
       cy.getCy('reset-token-input').type(token + '!') // wrong token
       cy.getCy('reset-password-input').type('a new password')
-      cy.getCy('reset-confirmpassword-input').type('a new password')
+      cy.getCy('reset-confirm-password-input').type('a new password')
       cy.getCy('reset-submit-button').click()
 
       // Assertion
