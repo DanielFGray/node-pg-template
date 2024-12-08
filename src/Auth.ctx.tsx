@@ -8,10 +8,10 @@ type AuthContext = {
   setUser: (u: User | null) => void
 }
 
-const ctx = createContext<AuthContext>(undefined)
+const AuthCtx = createContext<AuthContext>(undefined)
 
 export function useAuth() {
-  const authCtx = useContext(ctx)
+  const authCtx = useContext(AuthCtx)
   if (!authCtx) throw new Error('useAuth must be used within an AuthProvider')
   return authCtx
 }
@@ -30,7 +30,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       {user === 'loading' ? (
         <Spinner/>
       ) : (
-        <ctx.Provider value={{ user, setUser }}>{children}</ctx.Provider>
+        <AuthCtx value={{ user, setUser }}>{children}</AuthCtx>
       )}
     </>
   )
