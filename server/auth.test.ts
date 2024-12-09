@@ -20,44 +20,40 @@ describe('auth:user', () => {
   let Cookie: string
 
   it('can register', async () => {
-    const { headers, data, error } = await api<FormResult>('/register', {
-      method: 'post',
-      body: new URLSearchParams(user),
-    })
-    expect(error).toBeUndefined()
-    expect(data).toBeTypeOf('object')
-    expect(data?.payload?.id).toBeTypeOf('string')
-    expect(data?.payload?.username).toBe(user.username)
-    userId = data?.payload?.id as string
-    Cookie = headers.get('set-cookie')
+    const req = await api.register.$post({ form: user })
+    const res = await req.json()
+    expect(req.ok).toBe(true)
+    if (!req.ok) return
+    expect(res.payload.id).toBeTypeOf('string')
+    expect(res.payload.username).toBe(user.username)
+    userId = res.payload.id as string
+    Cookie = req.headers.get('set-cookie')
   })
 
   it('can not register with an existing username', async () => {
-    const { data, error } = await api<FormResult>('/register', {
-      method: 'post',
-      body: new URLSearchParams(user),
+    const req = await api.register.$post({
+      form: user
     })
-    expect(data).toBeUndefined()
-    expect(error).toEqual({ fieldErrors: { username: ['username already exists'] } })
+    expect(req.ok).toBe(false)
+    expect(await req.json()).toEqual({ fieldErrors: { username: ['username already exists'] } })
   })
 
   it('can not login with wrong password', async () => {
-    const { data, error } = await api<FormResult>('/login', {
-      method: 'post',
-      body: new URLSearchParams({ id: user.username, password: 'wrong123' }),
+    const req = await api.login.$post({
+      form: { id: user.username, password: 'wrong123' }
     })
-    expect(data).toBeUndefined()
-    expect(error).toEqual({ formErrors: ['invalid username or password'] })
+    const res = await req.json()
+    expect(res).toEqual({ formErrors: ['invalid username or password'] })
   })
 
   it('can request /me from cookie', async () => {
-    const { data, error } = await api<FormResult>('/me', {
+    const req = await api.me.$get({
       headers: { Cookie, Accept: 'application/json' },
     })
-    expect(error).toBeUndefined()
-    expect(data).not.toBeNull()
-    expect(data?.payload?.id).toEqual(userId)
-    expect(data?.payload?.username).toEqual(user.username)
+    const res = await req.json()
+    expect(res.payload).toBeDefined()
+    expect(res.payload?.id).toEqual(userId)
+    expect(res.payload?.username).toEqual(user.username)
   })
 })
 

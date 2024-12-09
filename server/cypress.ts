@@ -1,8 +1,8 @@
-import type { Express, Request, RequestHandler, Response } from 'express'
+import type * as hono from 'hono'
 import { rootPool } from './db.js'
 import log from './log.js'
 
-export function installCypressCommands(app: Express) {
+export function installCypressCommands(app: hono.Hono) {
   if (process.env.NODE_ENV === 'production') {
     throw new Error('cypress helpers must not run in production mode')
   }
@@ -12,10 +12,10 @@ export function installCypressCommands(app: Express) {
    * responsible for parsing the request and handing it off to the relevant
    * function.
    */
-  app.get('/cypressServerCommand', async (req, res) => {
+  app.get('/cypressServerCommand', async (ctx) => {
     try {
       // Try to read and parse the commands from the request.
-      const { query } = req
+      const query = ctx.req.query()
       if (!query) {
         throw new Error('Query not specified')
       }
@@ -29,7 +29,7 @@ export function installCypressCommands(app: Express) {
       const payload = rawPayload ? JSON.parse(String(rawPayload)) : {}
 
       // Now run the actual command:
-      const result = await runCommand(req, res, command, payload)
+      const result = await runCommand(ctx, command, payload)
 
       if (result === null) {
         /*
@@ -37,11 +37,12 @@ export function installCypressCommands(app: Express) {
          * response. This allows commands to do things like redirect to new
          * pages when they're done.
          */
+        throw new Error('Command handled response')
       } else {
         /*
          * The command returned a result, send it back to the test suite.
          */
-        res.json(result)
+        return result
       }
     } catch (e: any) {
       /*
@@ -49,29 +50,28 @@ export function installCypressCommands(app: Express) {
        * the test.
        */
       log.error('cypressServerCommand failed! %O', e)
-      res.status(500).json({
+      return ctx.json({
         error: {
           message: e.message,
           stack: e.stack,
         },
-      })
+      }, 500)
     }
   })
 }
 
 async function runCommand(
-  req: Request,
-  res: Response,
+  ctx: hono.Context,
   command: string,
   payload: { [key: string]: any },
 ): Promise<object | null> {
   log.debug('running cypress command: %s', command)
   if (command === 'clearTestUsers') {
     await rootPool.query("delete from app_public.users where username like 'testuser%'")
-    return { success: true }
+    return ctx.json({ success: true })
   } else if (command === 'clearTestOrganizations') {
     await rootPool.query("delete from app_public.organizations where slug like 'test%'")
-    return { success: true }
+    return ctx.json({ success: true })
   } else if (command === 'createUser') {
     if (!payload) {
       throw new Error('Payload required')
@@ -103,7 +103,7 @@ async function runCommand(
       verificationToken = userEmailSecrets.verification_token
     }
 
-    return { user, userEmailId, verificationToken }
+    return ctx.json({ user, userEmailId, verificationToken })
   } else if (command === 'login') {
     const {
       username = 'testuser',
@@ -175,26 +175,24 @@ async function runCommand(
       client.release()
     }
 
-    req.session.user = { session_id: session.uuid, user_id: user.id }
-    setTimeout(() => {
-      // This 500ms delay is required to keep GitHub actions happy. 200ms wasn't enough.
-      res.redirect(redirectTo || '/')
-    }, 500)
-    return null
+    const s = ctx.get('session')
+    s.set('user_id', user.id)
+    s.set('uuid', session.uuid)
+    return ctx.redirect(redirectTo || '/')
   } else if (command === 'getUserSecrets') {
     const { username = 'testuser' } = payload
     const userSecrets = await getUserSecrets(username)
-    return userSecrets
+    return ctx.json(userSecrets)
   } else if (command === 'getEmailSecrets') {
     const { email = 'testuser@example.com' } = payload
     const userEmailSecrets = await getUserEmailSecrets(email)
-    return userEmailSecrets
+    return ctx.json(userEmailSecrets)
   } else if (command === 'verifyUser') {
     const { username = 'testuser' } = payload
     await rootPool.query('update app_public.users SET is_verified = TRUE where username = $1', [
       username,
     ])
-    return { success: true }
+    return ctx.json({ success: true })
   } else {
     throw new Error(`Command '${command}' not understood.`)
   }

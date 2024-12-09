@@ -7,15 +7,13 @@
  * Do not confuse this with the `app_private.sessions` table.
  */
 
-create table app_private.connect_pg_simple_sessions (
-  sid varchar not null,
-  sess jsonb not null,
+create table app_private.cookie_sessions (
+  id text primary key,
+  data jsonb not null,
   expire timestamptz not null
 );
-alter table app_private.connect_pg_simple_sessions
+alter table app_private.cookie_sessions
   enable row level security;
-alter table app_private.connect_pg_simple_sessions
-  add constraint session_pkey primary key (sid) not deferrable initially immediate;
 
 /*
  * The sessions table is used to track who is logged in, if there are any
@@ -31,9 +29,7 @@ alter table app_private.connect_pg_simple_sessions
  *
  * The primary key is a cryptographically secure random uuid; the value of this
  * primary key should be secret, and only shared with the user themself. We
- * currently wrap this session in a webserver-level session (either using
- * redis, or using `connect-pg-simple` which uses the
- * `connect_pg_simple_sessions` table which we defined previously) so that we
+ * currently wrap this session in a webserver-level session so that we
  * don't even send the raw session id to the end user, but you might want to
  * consider exposing it for things such as mobile apps or command line
  * utilities that may not want to implement cookies to maintain a cookie

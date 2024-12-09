@@ -1,4 +1,4 @@
-import type express from 'express'
+import type * as hono from 'hono'
 import { Kysely, PostgresDialect, sql, type Transaction } from 'kysely'
 import type { DB } from 'kysely-codegen'
 import pg from 'pg'
@@ -30,10 +30,10 @@ export const authDb = new Kysely<DB>({
 })
 
 export function withAuthContext<R>(
-  req: express.Request,
+  ctx: hono.Context,
   cb: (sql: Transaction<DB>) => Promise<R>,
 ): Promise<R> {
-  const sid = req.session.user?.session_id ?? null
+  const sid = ctx.get('session').get('uuid') ?? null
   return authDb.transaction().execute(async tx => {
     await sql`
       select
