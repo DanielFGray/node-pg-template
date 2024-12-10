@@ -54,7 +54,8 @@
     "test:unit": "run-s -s 'vitest run'",
     "test:unit:watch": "run-s -s 'vitest run -- --watch'",
     "test:dev": "run-s test:unit:watch test:e2e:browser",
-    "test": "run-s -c lint typecheck test:unit test:e2e"
+    "test": "run-s -c test:unit test:e2e",
+    "ci": "run-s -c lint typecheck test"
   },
   "dependencies": {
     "@react-router/node": "^7.0.2",
