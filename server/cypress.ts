@@ -67,10 +67,10 @@ async function runCommand(
 ): Promise<object | null> {
   log.debug('running cypress command: %s', command)
   if (command === 'clearTestUsers') {
-    await rootPool.query("delete from app_public.users where username like 'testuser%'")
+    await rootPool.query('delete from app_public.users where username like \'testuser%\'')
     return { success: true }
   } else if (command === 'clearTestOrganizations') {
-    await rootPool.query("delete from app_public.organizations where slug like 'test%'")
+    await rootPool.query('delete from app_public.organizations where slug like \'test%\'')
     return { success: true }
   } else if (command === 'createUser') {
     if (!payload) {
@@ -85,7 +85,7 @@ async function runCommand(
       password = 'TestUserPassword',
     } = payload
     if (!username.startsWith('testuser')) {
-      throw new Error("Test user usernames may only start with 'testuser'")
+      throw new Error('Test user usernames may only start with \'testuser\'')
     }
     const user = await reallyCreateUser({
       username,
@@ -137,7 +137,7 @@ async function runCommand(
     try {
       await client.query('begin')
       async function setSession(sess: any) {
-        await client.query("select set_config('jwt.claims.session_id', $1, true)", [sess.uuid])
+        await client.query('select set_config(\'jwt.claims.session_id\', $1, true)', [sess.uuid])
       }
       try {
         await setSession(session)

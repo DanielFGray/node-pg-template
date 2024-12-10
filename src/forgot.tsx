@@ -56,7 +56,9 @@ export default function ForgotPassword() {
               {e}
             </div>
           ))}
-          <button type="submit" data-cy="forgot-submit-button">Reset Password</button>
+          <button type="submit" data-cy="forgot-submit-button">
+            Reset Password
+          </button>
         </div>
       </fieldset>
     </form>

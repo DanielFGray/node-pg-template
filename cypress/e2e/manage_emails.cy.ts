@@ -9,6 +9,8 @@ context('Manage emails', () => {
 
     // Action
     cy.getCy('nav-settings').click()
+
+    // Assertion
     cy.url().should('equal', Cypress.env('VITE_ROOT_URL') + '/settings')
   })
 

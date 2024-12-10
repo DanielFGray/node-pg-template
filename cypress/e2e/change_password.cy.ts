@@ -28,7 +28,6 @@ context('change password', () => {
     cy.getCy('logout-submit').click() // log out
 
     // should be logged out
-    // should be logged out
     cy.getCy('nav-login').should('exist')
 
     cy.getCy('nav-login').click()
