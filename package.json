@@ -40,7 +40,7 @@
     "predev": "run-s -s db:ensure",
     "prepare": "lefthook install",
     "init": "NOCONFIRM=1 run-s env:init db:init",
-    "lint:eslint": "eslint --ignore-path .gitignore --ext='.ts,.tsx,.mjs,.js,.jsx'",
+    "lint:eslint": "eslint --cache-file=.eslintcache --ignore-path=.gitignore --ext='.ts,.tsx,.mjs,.js,.jsx'",
     "lint:eslint:fix": "run-s -s 'lint:eslint -- --fix .'",
     "lint": "run-s -c 'lint:prettier -- .' 'lint:eslint -- --quiet .'",
     "fix": "run-s -c lint:prettier:fix lint:eslint:fix",
