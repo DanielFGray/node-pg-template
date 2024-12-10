@@ -1,0 +1,9 @@
+{
+  "apps": [
+    {
+      "name": "appname_prod",
+      "node_args": "--env-file=.env",
+      "script": "./dist/server.js"
+    }
+  ]
+}
