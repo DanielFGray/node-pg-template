@@ -85,7 +85,9 @@ export default function Login() {
             {response?.formErrors && (
               <>
                 {' '}
-                <Link to="/forgot" data-cy="login-forgot-link">I forgot my password</Link>
+                <Link to="/forgot" data-cy="login-forgot-link">
+                  I forgot my password
+                </Link>
               </>
             )}
           </div>
@@ -98,14 +100,7 @@ export default function Login() {
         </div>
         <SocialLogin verb="join" />
         <div>
-          <Link
-            to={{
-              pathname: '/register',
-              search: params.toString(),
-            }}
-          >
-            I need an account
-          </Link>
+          <Link to={{ pathname: '/register', search: params.toString() }}>I need an account</Link>
         </div>
       </div>
     </>

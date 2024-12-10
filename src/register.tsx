@@ -134,12 +134,7 @@ export default function Register() {
           <em>or</em>
         </div>
         <SocialLogin verb="register" />
-        <Link
-          to={{
-            pathname: '/login',
-            search: params.toString(),
-          }}
-        >
+        <Link to={{ pathname: '/login', search: params.toString() }}>
           log in with existing account
         </Link>
       </div>

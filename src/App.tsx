@@ -16,25 +16,35 @@ function Layout({ children }: { children: React.ReactNode }) {
       <nav data-cy="nav">
         <ul className="flex-row gap-2">
           <li>
-            <NavLink to="/" data-cy="nav-home">home</NavLink>
+            <NavLink to="/" data-cy="nav-home">
+              home
+            </NavLink>
           </li>
           {user ? (
             <>
               <li>hi {user.username}!</li>
               <li>
-                <NavLink to="/settings" data-cy="nav-settings">settings</NavLink>
+                <NavLink to="/settings" data-cy="nav-settings">
+                  settings
+                </NavLink>
               </li>
               <li>
-                <NavLink to="/logout" data-cy="nav-logout">log out</NavLink>
+                <NavLink to="/logout" data-cy="nav-logout">
+                  log out
+                </NavLink>
               </li>
             </>
           ) : (
             <>
               <li>
-                <NavLink to="/login" data-cy="nav-login">login</NavLink>
+                <NavLink to="/login" data-cy="nav-login">
+                  login
+                </NavLink>
               </li>
               <li>
-                <NavLink to="/register" data-cy="nav-register">register</NavLink>
+                <NavLink to="/register" data-cy="nav-register">
+                  register
+                </NavLink>
               </li>
             </>
           )}
