@@ -38,15 +38,23 @@
     "db:setup": "node --env-file=.env ./scripts/dbSetup.mjs",
     "db:init": "run-s db:up db:setup db:reset db:latest",
     "predev": "run-s -s db:ensure",
+    "prepare": "lefthook install",
     "init": "NOCONFIRM=1 run-s env:init db:init",
+    "lint:eslint": "eslint --ignore-path .gitignore --ext='.ts,.tsx,.mjs,.js,.jsx'",
+    "lint:eslint:fix": "run-s -s 'lint:eslint -- --fix .'",
+    "lint": "run-s -c 'lint:prettier -- .' 'lint:eslint -- --quiet .'",
+    "fix": "run-s -c lint:prettier:fix lint:eslint:fix",
+    "lint:prettier:fix": "prettier --ignore-path .gitignore -u --write .",
+    "lint:prettier": "prettier --ignore-path .gitignore -u -c",
+    "typecheck": "tsc --noEmit -p .",
     "vitest": "node --env-file=.env ./node_modules/.bin/vitest",
     "cypress": "node --env-file=.env ./node_modules/.bin/cypress",
     "test:e2e:browser": "run-s -s 'cypress -- open --e2e'",
     "test:e2e": "run-s -s 'cypress -- run --e2e'",
-    "test:units": "run-s -s 'vitest run'",
-    "test:units:watch": "run-s -s 'vitest run -- --watch'",
-    "test:dev": "run-s test:units:watch",
-    "test": "run-s test:units test:e2e"
+    "test:unit": "run-s -s 'vitest run'",
+    "test:unit:watch": "run-s -s 'vitest run -- --watch'",
+    "test:dev": "run-s test:unit:watch test:e2e:browser",
+    "test": "run-s -c lint typecheck test:unit test:e2e"
   },
   "dependencies": {
     "@react-router/node": "^7.0.2",
@@ -74,6 +82,8 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@commitlint/cli": "^19.6.0",
+    "@commitlint/config-conventional": "^19.6.0",
     "@react-router/dev": "^7.0.2",
     "@total-typescript/tsconfig": "^1.0.4",
     "@types/connect-pg-simple": "^7.0.3",
@@ -93,7 +103,9 @@
     "@typescript-eslint/eslint-plugin": "^5.62.0",
     "@typescript-eslint/parser": "^5.62.0",
     "@vitejs/plugin-react": "^4.3.4",
+    "commitlint": "^19.6.0",
     "cypress": "^13.16.1",
+    "cz-conventional-changelog": "^3.3.0",
     "dotenv": "^16.4.7",
     "esbuild": "^0.24.0",
     "eslint": "^8.57.1",
@@ -103,11 +115,17 @@
     "eslint-plugin-react": "^7.37.2",
     "eslint-plugin-react-hooks": "^4.6.2",
     "inquirer": "^12.2.0",
+    "lefthook": "^1.9.0",
     "nodemon": "^3.1.7",
     "prettier": "^3.4.2",
     "typescript": "^5.7.2",
     "vite": "^5.4.11",
     "vitest": "^2.1.8"
+  },
+  "config": {
+    "commitizen": {
+      "path": "./node_modules/cz-conventional-changelog"
+    }
   },
   "browserslist": {
     "production": [

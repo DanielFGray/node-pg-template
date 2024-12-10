@@ -1,0 +1,36 @@
+# docs: https://github.com/evilmartians/lefthook/blob/master/docs/configuration.md
+
+commit-msg:
+  only:
+    - ref: develop
+    - ref: main
+  commands:
+    'lint commit message':
+      interactive: true
+      run: npx commitlint --edit {1}
+
+pre-commit:
+  only:
+    - ref: develop
+    - ref: main
+  commands:
+    prettier:
+      glob: '*.{js,mjs,cjs,ts,tsx,json,css,html}'
+      run: npm run lint:prettier {staged_files}
+    eslint:
+      glob: '*.{js,mjs,cjs,ts,tsx}'
+      run: npm run lint:eslint --quiet {staged_files}
+
+pre-push:
+  only:
+    - ref: develop
+    - ref: main
+  commands:
+    prettier:
+      files: git diff --name-only HEAD @{push}
+      glob: '*.{js,mjs,cjs,ts,tsx,json,css,html}'
+      run: npm run lint:prettier {files}
+    eslint:
+      files: git diff --name-only HEAD @{push}
+      glob: '*.{js,mjs,cjs,ts,tsx}'
+      run: npm run lint:eslint --quiet {files}
