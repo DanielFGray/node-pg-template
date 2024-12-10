@@ -1,42 +1,74 @@
+/** @type {import("eslint").Linter.Config} */
 module.exports = {
-  parser: '@typescript-eslint/parser',
-  plugins: ['@typescript-eslint'],
-  plugins: ['jsx-a11y', 'react', 'react-hooks', '@typescript-eslint'],
-  extends: [
-    'eslint:recommended',
-    'plugin:jsx-a11y/recommended',
-    'plugin:react/recommended',
-    'plugin:react-hooks/recommended',
-    'plugin:@typescript-eslint/recommended',
-    // 'plugin:@typescript-eslint/recommended-requiring-type-checking',
-  ],
+  root: true,
+  parserOptions: {
+    ecmaVersion: 'latest',
+    sourceType: 'module',
+    project: './tsconfig.json',
+    ecmaFeatures: {
+      jsx: true,
+    },
+  },
   env: {
     node: true,
     browser: true,
+    commonjs: true,
+    es6: true,
   },
-  settings: {
-    react: {
-      pragma: 'React',
-      version: 'detect',
+
+  ignorePatterns: ['./dist/*', './node_modules/'],
+  // Base config
+  overrides: [
+    // base
+    {
+      files: ['**/*.{js,ts,jsx,tsx,cjs,mjs}'],
+      extends: ['eslint:recommended'],
     },
-  },
-  parserOptions: {
-    project: 'tsconfig.json',
-  },
+
+    // React
+    {
+      files: ['**/*.{jsx,tsx}'],
+      plugins: ['react', 'jsx-a11y'],
+      extends: [
+        'plugin:react/recommended',
+        'plugin:react/jsx-runtime',
+        'plugin:react-hooks/recommended',
+        'plugin:jsx-a11y/recommended',
+      ],
+      settings: {
+        react: {
+          version: 'detect',
+        },
+        linkComponents: [
+          { name: 'Link', linkAttribute: 'to' },
+          { name: 'NavLink', linkAttribute: 'to' },
+        ],
+      },
+    },
+
+    // TypeScript
+    {
+      files: ['**/*.{ts,tsx}'],
+      plugins: ['@typescript-eslint'],
+      parser: '@typescript-eslint/parser',
+      extends: ['plugin:@typescript-eslint/recommended', 'plugin:import/typescript'],
+      parserOptions: {
+        project: './tsconfig.json',
+      },
+    },
+
+    // Cypress
+    {
+      files: ['./cypress/**/*.{js,ts}'],
+      plugins: ['cypress'],
+      extends: ['plugin:cypress/recommended'],
+    },
+  ],
+
   rules: {
-    '@typescript-eslint/require-await': 'warn',
-    'arrow-parens': ['error', 'as-needed'],
-    'indent': 'off',
-    'no-nested-ternary': 'off',
     'no-unexpected-multiline': 'error',
-    'no-unused-vars': 'off',
-    'no-unused-vars': 'off',
-    'object-curly-newline': 'off',
-    'quote-props': ['error', 'consistent-as-needed'],
-    'quotes': ['error', 'single'],
-    'semi': ['error', 'never'],
+    'no-unused-vars': 'warn',
     'valid-jsdoc': 'warn',
-    'react/react-in-jsx-scope': 'off',
-    'no-console': 'error',
+    'no-console': 'warn',
   },
 }
