@@ -21,7 +21,7 @@ context('reset password', () => {
       username: 'testuser',
       name: 'Test User',
       verified: true,
-      password: 'some password'
+      password: 'some password',
     })
     cy.visit(Cypress.env('VITE_ROOT_URL') + '/forgot')
     cy.getCy('forgot-email-input').type('testuser@example.com')
@@ -35,7 +35,9 @@ context('reset password', () => {
       const userId = sc.user_id
 
       // Action
-      cy.visit(Cypress.env('VITE_ROOT_URL') + '/reset?' + new URLSearchParams({ userId }).toString())
+      cy.visit(
+        Cypress.env('VITE_ROOT_URL') + '/reset?' + new URLSearchParams({ userId }).toString(),
+      )
       cy.getCy('reset-token-input').type(token + '!') // wrong token
       cy.getCy('reset-password-input').type('a new password')
       cy.getCy('reset-confirm-password-input').type('a new password')

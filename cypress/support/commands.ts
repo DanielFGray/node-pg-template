@@ -91,12 +91,12 @@ function serverCommand(
   password_hash: string | null
   last_login_at: string
   failed_password_attempts: number
-  first_failed_password_attempt: string | null,
-  reset_password_token: string | null,
-  reset_password_token_generated: string | null,
-  failed_reset_password_attempts: number,
-  first_failed_reset_password_attempt: string | null,
-  delete_account_token: string | null,
+  first_failed_password_attempt: string | null
+  reset_password_token: string | null
+  reset_password_token_generated: string | null
+  failed_reset_password_attempts: number
+  first_failed_reset_password_attempt: string | null
+  delete_account_token: string | null
   delete_account_token_generated: string | null
 }>
 
@@ -153,6 +153,7 @@ Cypress.Commands.add('login', login)
 export {} // Make this a module so we can `declare global`
 
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Cypress {
     interface Chainable {
       getCy: typeof getCy

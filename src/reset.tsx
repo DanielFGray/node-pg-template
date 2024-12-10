@@ -112,7 +112,9 @@ export function ResetPass() {
                 {e}
               </div>
             ))}
-            <button type="submit" data-cy="reset-submit-button">reset password</button>
+            <button type="submit" data-cy="reset-submit-button">
+              reset password
+            </button>
           </div>
         </fieldset>
       </form>
