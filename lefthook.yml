@@ -1,4 +1,10 @@
 # docs: https://github.com/evilmartians/lefthook/blob/master/docs/configuration.md
+#
+output:
+  - summary
+  - success
+  - failure
+  - execution
 
 prepare-commit-msg:
   only:
