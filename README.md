@@ -16,7 +16,7 @@ The `init` scripts assume you have `docker` and `docker-compose` installed
 
 ## Roadmap
 
-- [x] settings page
-- [x] client-side protected routes
+- [x] testing
+- [ ] typed rpc
 - [ ] observability
 - [ ] server-side rendering?
