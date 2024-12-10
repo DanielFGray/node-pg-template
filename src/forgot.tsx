@@ -1,12 +1,10 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router'
 import { api } from './api.js'
 import type { FormResult } from './types.js'
 
 export default function ForgotPassword() {
   const [response, setResponse] = useState<FormResult>()
-  const navigate = useNavigate()
-  if (false)
+  if (response?.formMessages)
     return (
       <div>
         We&apos;ve sent a link to your email. Please check your email and click the link and follow
