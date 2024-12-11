@@ -575,15 +575,15 @@ const app = express()
 if (!(env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET)) {
   log.info('GitHub OAuth is not configured')
 } else {
+  const providerSpec = z.enum(['github'])
+
   const oauthProviders = {
     github: new GitHub(
       env.GITHUB_CLIENT_ID,
       env.GITHUB_CLIENT_SECRET,
       `${rootUrl}/auth/github/callback`,
     ),
-  } as const
-
-  const providerSpec = z.literal('github')
+  } satisfies Record<z.infer<typeof providerSpec>, unknown>
 
   app.get('/auth/:provider', (req, res) => {
     const params = providerSpec.safeParse(req.params.provider)
