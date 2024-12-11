@@ -13,18 +13,22 @@ export default function Verify() {
     return ''
   })
 
+  async function verifyEmail() {
+    const body = new URLSearchParams([
+      ['id', id],
+      ['token', token],
+    ])
+    const res = await api<FormResult<{ verify_email: boolean }>>('/verify-email', {
+      method: 'post',
+      body,
+    })
+    if (!res.ok) return setResponse(res.error)
+    setResponse(res.data)
+  }
+
   useEffect(() => {
     if (id && token) {
-      const body = new URLSearchParams([
-        ['id', id],
-        ['token', token],
-      ])
-      api<FormResult<{ verify_email: boolean }>>('/verify-email', { method: 'post', body }).then(
-        res => {
-          if (!res.ok) return setResponse(res.error)
-          setResponse(res.data)
-        },
-      )
+      verifyEmail()
     }
   }, [id, token])
 
