@@ -17,11 +17,10 @@ export default function Settings() {
   if (!auth.user) throw new Error("you shouldn't be here")
   const [settings, setEmail] = useState<SettingsData>()
   async function refetch() {
-    return api<FormResult<SettingsData>>('/settings').then(res => {
-      if (res.ok && res.data?.payload) {
-        setEmail(res.data.payload)
-      }
-    })
+    const res = await api<FormResult<SettingsData>>('/settings')
+    if (res.ok && res.data?.payload) {
+      setEmail(res.data.payload)
+    }
   }
   useEffect(() => {
     refetch()
@@ -45,16 +44,15 @@ export function ProfileSettings({ currentUser }: { currentUser: User }) {
   return (
     <form
       method="post"
-      onSubmit={ev => {
+      onSubmit={async ev => {
         ev.preventDefault()
         const body = new URLSearchParams(new FormData(ev.currentTarget) as any)
-        api<FormResult<User>>('/me', { method: 'post', body }).then(res => {
-          if (!res.ok) return setResponse(res.error)
-          if (!res.data.payload) return setResponse(res.data)
-          const { payload, ...data } = res.data
-          setResponse(data)
-          auth.setUser(payload)
-        })
+        const res = await api<FormResult<User>>('/me', { method: 'post', body })
+        if (!res.ok) return setResponse(res.error)
+        if (!res.data.payload) return setResponse(res.data)
+        const { payload, ...data } = res.data
+        setResponse(data)
+        auth.setUser(payload)
       }}
     >
       <fieldset>
@@ -137,15 +135,14 @@ export function PasswordSettings({
   if (!has_password)
     return (
       <form
-        onSubmit={ev => {
+        onSubmit={async ev => {
           ev.preventDefault()
           const primaryEmail = emails.find(e => e.is_primary)?.email
           if (!primaryEmail) throw new Error('no primary email')
           const body = new URLSearchParams([['email', primaryEmail]])
-          api<FormResult>('/forgot-password', { method: 'post', body }).then(res => {
-            if (!res.ok) return setResponse(res.error)
-            setResponse(res.data)
-          })
+          const res = await api<FormResult>('/forgot-password', { method: 'post', body })
+          if (!res.ok) return setResponse(res.error)
+          setResponse(res.data)
         }}
       >
         <fieldset>
@@ -157,14 +154,13 @@ export function PasswordSettings({
   return (
     <form
       method="post"
-      onSubmit={ev => {
+      onSubmit={async ev => {
         ev.preventDefault()
         const body = new URLSearchParams(new FormData(ev.currentTarget) as any)
-        api<FormResult>('/change-password', { method: 'post', body }).then(res => {
-          if (!res.ok) return setResponse(res.error)
-          setResponse(res.data)
-          refetch()
-        })
+        const res = await api<FormResult>('/change-password', { method: 'post', body })
+        if (!res.ok) return setResponse(res.error)
+        setResponse(res.data)
+        refetch()
       }}
       data-cy="settings-password-form"
     >
@@ -328,14 +324,14 @@ function Email({
       </div>
       <form
         method="post"
-        onSubmit={ev => {
+        onSubmit={async ev => {
           ev.preventDefault()
           const formdata = new FormData(ev.currentTarget)
           const body = new URLSearchParams(formdata as any)
           const type = (ev.nativeEvent.submitter as HTMLButtonElement).getAttribute('value')
           switch (type) {
             case 'resendValidation': {
-              return api<FormResult>('/resend-email-verification-code', {
+              const res = await api<FormResult>('/resend-email-verification-code', {
                 method: 'post',
                 body,
               }).then(res => {
@@ -343,20 +339,21 @@ function Email({
                 setResponse(res.data)
                 refetch()
               })
+              if (!res.ok) return setResponse(res.error)
+              setResponse(res.data)
+              return refetch()
             }
             case 'deleteEmail': {
-              return api<FormResult>('/settings/email', { method: 'delete', body }).then(res => {
-                if (!res.ok) return setResponse(res.error)
-                setResponse(res.data)
-                refetch()
-              })
+              const res = await api<FormResult>('/settings/email', { method: 'delete', body })
+              if (!res.ok) return setResponse(res.error)
+              setResponse(res.data)
+              return refetch()
             }
             case 'makePrimary': {
-              return api<FormResult>('/make-email-primary', { method: 'post', body }).then(res => {
-                if (!res.ok) return setResponse(res.error)
-                setResponse(res.data)
-                refetch()
-              })
+              const res = await api<FormResult>('/make-email-primary', { method: 'post', body })
+              if (!res.ok) return setResponse(res.error)
+              setResponse(res.data)
+              refetch()
             }
           }
         }}

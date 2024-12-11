@@ -16,17 +16,19 @@ export function ResetPass() {
     <div>
       <form
         method="POST"
-        onSubmit={ev => {
+        onSubmit={async ev => {
           ev.preventDefault()
           const body = new URLSearchParams(new FormData(ev.currentTarget) as any)
-          api<FormResult<{ user: User }>>('/reset-password', { method: 'post', body }).then(res => {
-            if (!res.ok) return setResponse(res.error)
-            setResponse(res.data)
-            if (res.data.payload) {
-              auth.setUser(res.data.payload.user)
-              navigate(params.get('redirectTo') || '/')
-            }
+          const res = await api<FormResult<{ user: User }>>('/reset-password', {
+            method: 'post',
+            body,
           })
+          if (!res.ok) return setResponse(res.error)
+          setResponse(res.data)
+          if (res.data.payload) {
+            auth.setUser(res.data.payload.user)
+            navigate(params.get('redirectTo') || '/')
+          }
         }}
       >
         <fieldset>

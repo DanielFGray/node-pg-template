@@ -14,13 +14,12 @@ export default function ForgotPassword() {
     )
   return (
     <form
-      onSubmit={ev => {
+      onSubmit={async ev => {
         ev.preventDefault()
         const body = new URLSearchParams(new FormData(ev.currentTarget) as any)
-        api<FormResult>('/forgot-password', { method: 'post', body }).then(res => {
-          if (!res.ok) return setResponse(res.error)
-          setResponse(res.data)
-        })
+        const res = await api<FormResult>('/forgot-password', { method: 'post', body })
+        if (!res.ok) return setResponse(res.error)
+        setResponse(res.data)
       }}
     >
       <fieldset>

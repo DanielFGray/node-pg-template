@@ -12,12 +12,11 @@ export default function Logout() {
   return (
     <form
       method="POST"
-      onSubmit={ev => {
+      onSubmit={async ev => {
         ev.preventDefault()
-        api('/logout', { method: 'post' }).then(() => {
-          auth.setUser(null)
-          navigate('/')
-        })
+        await api('/logout', { method: 'post' })
+        auth.setUser(null)
+        navigate('/')
       }}
     >
       <fieldset>

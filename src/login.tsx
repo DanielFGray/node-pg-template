@@ -18,16 +18,15 @@ export default function Login() {
     <>
       <form
         method="POST"
-        onSubmit={ev => {
+        onSubmit={async ev => {
           ev.preventDefault()
           const body = new URLSearchParams(new FormData(ev.currentTarget) as any)
-          api<FormResult<User>>('/login', { method: 'post', body }).then(res => {
-            if (!res.ok) return setResponse(res.error)
-            if (res.data?.payload?.id) {
-              auth.setUser(res.data.payload)
-              navigate(params.get('redirectTo') || '/')
-            }
-          })
+          const res = await api<FormResult<User>>('/login', { method: 'post', body })
+          if (!res.ok) return setResponse(res.error)
+          if (res.data?.payload?.id) {
+            auth.setUser(res.data.payload)
+            navigate(params.get('redirectTo') || '/')
+          }
         }}
       >
         <fieldset>
