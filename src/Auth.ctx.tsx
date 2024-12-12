@@ -27,11 +27,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      {user === 'loading' ? (
-        <Spinner/>
-      ) : (
-        <AuthCtx value={{ user, setUser }}>{children}</AuthCtx>
-      )}
+      {user === 'loading' ? <Spinner /> : <AuthCtx value={{ user, setUser }}>{children}</AuthCtx>}
     </>
   )
 }
