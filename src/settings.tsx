@@ -3,7 +3,7 @@ import { useAuth } from './Auth.ctx.js'
 import type { FormResult, User, UserAuthentication, UserEmail } from './types.js'
 import { api } from './api.js'
 import { useNavigate, useSearchParams } from 'react-router'
-import { Spinner } from './components.js'
+import { Spinner, FormErrors } from './components.js'
 import { SocialLogin } from './SocialLogin.js'
 import * as schemas from './schemas.js'
 
@@ -114,16 +114,7 @@ export function ProfileSettings({ currentUser }: { currentUser: User }) {
         </div>
 
         <div>
-          {response?.formMessages?.map(e => (
-            <div key={e} className="field-message">
-              {e}
-            </div>
-          ))}
-          {response?.formErrors?.map(e => (
-            <div key={e} className="field-error">
-              {e}
-            </div>
-          ))}
+          <FormErrors response={response} />
           <button type="submit">update</button>
         </div>
       </fieldset>
@@ -232,16 +223,7 @@ export function PasswordSettings({
           ))}
         </div>
         <div>
-          {response?.formErrors?.map(e => (
-            <div key={e} className="field-error">
-              {e}
-            </div>
-          ))}
-          {response?.formMessages?.map(e => (
-            <div key={e} className="field-message">
-              {e}
-            </div>
-          ))}
+          <FormErrors response={response} />
           <button type="submit" data-cy="settings-change-password-submit">
             update
           </button>
@@ -320,16 +302,7 @@ function Email({
           )}
         </span>
         <div>Added {new Date(Date.parse(email.created_at)).toLocaleString()}</div>
-        {response?.formErrors?.map(e => (
-          <div key={e} className="field-error">
-            {e}
-          </div>
-        ))}
-        {response?.formMessages?.map(e => (
-          <div key={e} className="field-message">
-            {e}
-          </div>
-        ))}
+        <FormErrors response={response} />
       </div>
       <form
         method="post"
@@ -402,6 +375,7 @@ function Email({
           </button>
         )}
       </form>
+      <FormErrors response={response} />
     </li>
   )
 }
@@ -468,16 +442,7 @@ function AddEmailForm({ refetch }: { refetch: () => void }) {
         ))}
       </div>
       <div>
-        {response?.formErrors?.map(e => (
-          <div key={e} className="field-error">
-            {e}
-          </div>
-        ))}
-        {response?.formMessages?.map(e => (
-          <div key={e} className="field-message">
-            {e}
-          </div>
-        ))}
+        <FormErrors response={response} />
         <button type="submit" data-cy="settings-new-email-submit">
           add email
         </button>
@@ -602,7 +567,10 @@ function DeleteAccount() {
     >
       <fieldset>
         <legend>danger zone</legend>
-        <button name="submit">I want to delete my account</button>
+        <div>
+          <FormErrors response={response} />
+          <button name="submit">I want to delete my account</button>
+        </div>
       </fieldset>
     </form>
   )
