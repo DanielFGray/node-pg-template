@@ -7,7 +7,7 @@ import Settings from './settings.js'
 import Verify from './verify.js'
 import Forgot from './forgot.js'
 import Home from './home.js'
-import { ResetPass } from './reset.js'
+import ResetPass from './reset.js'
 
 function Layout({ children }: { children: React.ReactNode }) {
   const { user } = useAuth()

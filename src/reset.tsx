@@ -6,7 +6,7 @@ import { useAuth } from './Auth.ctx.js'
 import { resetPassword as validator } from './schemas.js'
 import { FormErrors } from './components.js'
 
-export function ResetPass() {
+export default function ResetPass() {
   const navigate = useNavigate()
   const auth = useAuth()
   const [response, setResponse] = useState<FormResult>()
