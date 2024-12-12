@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { api } from './api.js'
 import type { FormResult, User } from './types.js'
-import { Spinner } from './stubs.js'
+import { Spinner } from './components.js'
 
 type AuthContext = {
   user: User | null
