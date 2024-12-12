@@ -3,8 +3,7 @@ import { useAuth } from './Auth.ctx.js'
 import type { FormResult, User, UserAuthentication, UserEmail } from './types.js'
 import { api } from './api.js'
 import { useNavigate, useSearchParams } from 'react-router'
-import { Spinner, FormErrors } from './components.js'
-import { SocialLogin } from './SocialLogin.js'
+import { SocialLogin, Spinner, FormErrors } from './components.js'
 import * as schemas from './schemas.js'
 
 type SettingsData = {
