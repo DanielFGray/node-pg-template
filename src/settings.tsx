@@ -3,7 +3,7 @@ import { useAuth } from './Auth.ctx.js'
 import type { FormResult, User, UserAuthentication, UserEmail } from './types.js'
 import { api } from './api.js'
 import { useNavigate, useSearchParams } from 'react-router'
-import { SocialLogin, Spinner, FormErrors } from './components.js'
+import { SocialLogin, Spinner, FormErrors, UnverifiedAccountWarning } from './components.js'
 import * as schemas from './schemas.js'
 
 type SettingsData = {
@@ -241,12 +241,11 @@ function EmailSettings({
   emails?: UserEmail[] | undefined
   refetch: () => void
 }) {
-  if (!emails) return null
   return (
     <fieldset>
       <legend>email settings</legend>
       <ul data-cy="email-settings-list">
-        {emails.map(email => (
+        {emails?.map(email => (
           <Email
             key={email.id}
             refetch={refetch}
@@ -256,13 +255,7 @@ function EmailSettings({
         ))}
       </ul>
       <div>
-        {currentUser.is_verified ? null : (
-          <small>
-            You do not have any verified email addresses, this will make account recovery impossible
-            and may limit your available functionality within this application. Please complete
-            email verification.
-          </small>
-        )}
+        {currentUser.is_verified ? null : <UnverifiedAccountWarning />}
         <AddEmailForm refetch={refetch} />
       </div>
     </fieldset>

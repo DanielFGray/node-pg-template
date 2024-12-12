@@ -31,10 +31,9 @@ context('Subscriptions', () => {
     cy.getCy('nav').should('contain', testuser.username) // Should be logged in
 
     // Subscription
-    cy.getCy('header-unverified-warning').should('exist')
-    cy.wait(1000) // allow the websocket to reconnect
+    cy.getCy('unverified-account-warning').should('exist')
     cy.serverCommand('verifyUser')
-    cy.getCy('header-unverified-warning').should('not.exist')
+    cy.getCy('unverified-account-warning').should('not.exist')
   })
 
   it('can start on an already logged-in session; current user subscription works', () => {
@@ -42,10 +41,9 @@ context('Subscriptions', () => {
     cy.login({ redirectTo: '/', verified: false })
 
     // Subscription
-    cy.getCy('header-unverified-warning').should('exist')
-    cy.wait(1000) // allow the websocket to reconnect
+    cy.getCy('unverified-account-warning').should('exist')
     cy.serverCommand('verifyUser')
-    cy.getCy('header-unverified-warning').should('not.exist')
+    cy.getCy('unverified-account-warning').should('not.exist')
   })
 
   it('can register; current user subscription works', () => {
@@ -66,9 +64,8 @@ context('Subscriptions', () => {
     cy.getCy('nav').should('contain', testuser.username) // Should be logged in
 
     // Subscription
-    cy.getCy('header-unverified-warning').should('exist')
-    cy.wait(1000) // allow the websocket to reconnect
+    cy.getCy('unverified-account-warning').should('exist')
     cy.serverCommand('verifyUser')
-    cy.getCy('header-unverified-warning').should('not.exist')
+    cy.getCy('unverified-account-warning').should('not.exist')
   })
 })
