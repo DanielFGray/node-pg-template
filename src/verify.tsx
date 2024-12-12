@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { FormResult } from './types.js'
 import { api } from './api.js'
 import { useSearchParams } from 'react-router'
+import { FormErrors } from './components.js'
 
 export default function Verify() {
   const [params] = useSearchParams()
@@ -37,16 +38,7 @@ export default function Verify() {
       {response.payload?.verify_email && (
         <div data-cy="email-verified">Thank you for verifying your email address.</div>
       )}
-      {response?.formMessages?.map(e => (
-        <div className="field-error" key={e}>
-          {e}
-        </div>
-      ))}
-      {response?.formErrors?.map(e => (
-        <div className="field-error" key={e}>
-          {e}
-        </div>
-      ))}
+      <FormErrors response={response} />
     </div>
   )
 }

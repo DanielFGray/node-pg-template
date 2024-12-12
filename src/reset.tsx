@@ -4,6 +4,7 @@ import type { FormResult, User } from './types.js'
 import { useNavigate, useSearchParams } from 'react-router'
 import { useAuth } from './Auth.ctx.js'
 import { resetPassword as validator } from './schemas.js'
+import { FormErrors } from './components.js'
 
 export function ResetPass() {
   const navigate = useNavigate()
@@ -114,11 +115,7 @@ export function ResetPass() {
           </div>
 
           <div>
-            {response?.formErrors?.map(e => (
-              <div className="field-error" key={e}>
-                {e}
-              </div>
-            ))}
+            <FormErrors response={response} />
             <button type="submit" data-cy="reset-submit-button">
               reset password
             </button>
