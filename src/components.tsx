@@ -1,5 +1,15 @@
 import type { FormResult } from './types.js'
 
+export function UnverifiedAccountWarning() {
+  return (
+    <small data-cy="unverified-account-warning">
+      You do not have any verified email addresses, this will make account recovery impossible and
+      may limit your available functionality within this application. Please complete email
+      verification.
+    </small>
+  )
+}
+
 export function Spinner() {
   return <>loading...</>
 }
