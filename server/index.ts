@@ -12,6 +12,7 @@ import { z } from 'zod'
 import { GitHub, OAuth2RequestError, OAuth2Tokens, generateState } from 'arctic'
 import { parseCookies, serializeCookie } from 'oslo/cookie'
 import log from './log.js'
+import * as schemas from '#app/schemas.js'
 
 declare module 'express-session' {
   interface SessionData {
@@ -66,16 +67,7 @@ const app = express()
   )
 
   .post('/register', (req, res) => {
-    const body = z
-      .object({
-        username: usernameSpec,
-        password: passwordSpec,
-        email: z.string().optional(),
-        confirmPassword: z.string(),
-      })
-      .strict()
-      .refine(data => data.password === data.confirmPassword, 'passwords must match')
-      .safeParse(req.body)
+    const body = schemas.register.safeParse(req.body)
     if (!body.success) return res.status(400).json(body.error.flatten() satisfies FormResult)
     const { username, password, email } = body.data
     req.session.regenerate(async () => {
@@ -121,7 +113,7 @@ const app = express()
   })
 
   .post('/login', (req, res) => {
-    const body = z.object({ id: z.string(), password: z.string() }).strict().safeParse(req.body)
+    const body = schemas.login.safeParse(req.body)
     if (!body.success) return res.status(400).json(body.error.flatten() satisfies FormResult)
     const { id, password } = body.data
     req.session.regenerate(async () => {
@@ -212,7 +204,7 @@ const app = express()
         .status(401)
         .json({ formErrors: ['you must be logged in to do that!'] } satisfies FormResult)
     log.debug(req.body)
-    const body = z.object({ emailId: z.string().uuid() }).safeParse(req.body)
+    const body = schemas.deleteEmail.safeParse(req.body)
     if (!body.success) return res.status(400).json(body.error.flatten() satisfies FormResult)
     return withAuthContext(req, async tx => {
       try {
@@ -236,7 +228,7 @@ const app = express()
       return res
         .status(401)
         .json({ formErrors: ['you must be logged in to do that!'] } satisfies FormResult)
-    const body = z.object({ email: z.string().email() }).safeParse(req.body)
+    const body = schemas.addEmail.safeParse(req.body)
     if (!body.success) return res.status(400).json(body.error.flatten() satisfies FormResult)
     return withAuthContext(req, async tx => {
       try {
@@ -266,16 +258,7 @@ const app = express()
         .status(401)
         .json({ formErrors: ['you must be logged in to do that!'] } satisfies FormResult)
     const userId = req.session.user.user_id
-    const body = z
-      .object({
-        username: usernameSpec,
-        name: z.string(),
-        bio: z.string(),
-        avatar_url: z.string().url(),
-      })
-      .partial()
-      .strict()
-      .safeParse(req.body)
+    const body = schemas.updateProfile.safeParse(req.body)
     if (!body.success) return res.status(400).json(body.error.flatten() satisfies FormResult)
     const { username, name, bio, avatar_url } = body.data
     return withAuthContext(req, async tx => {
@@ -313,19 +296,7 @@ const app = express()
       return res
         .status(401)
         .json({ formErrors: ['you must be logged in to do that!'] } satisfies FormResult)
-    const body = z
-      .object({
-        oldPassword: z.string().optional(),
-        newPassword: passwordSpec,
-        confirmPassword: z.string(),
-      })
-      .strict()
-      // .refine(
-      //   data => !data.newPassword || (data.newPassword && data.oldPassword),
-      //   'old and new passwords are required',
-      // )
-      .refine(data => data.newPassword === data.confirmPassword, 'passwords must match')
-      .safeParse(req.body)
+    const body = schemas.changePassword.safeParse(req.body)
     if (!body.success) return res.status(400).json(body.error.flatten() satisfies FormResult)
     return withAuthContext(req, async tx => {
       try {
@@ -368,8 +339,11 @@ const app = express()
   })
 
   .delete('/me', (req, res, next) => {
-    if (!req.session.user?.user_id) return res.status(401).end('you must be logged in to do that!')
-    const { data: body } = z.object({ token: z.string().optional() }).safeParse(req.body)
+    if (!req.session.user?.user_id)
+      return res
+        .status(401)
+        .json({ formErrors: ['you must be logged in to do that!'] } satisfies formresult)
+    const { data: body } = schemas.deleteUser.safeParse(req.body)
     return withAuthContext(req, async tx => {
       try {
         if (body?.token) {
@@ -417,7 +391,7 @@ const app = express()
   })
 
   .post('/forgot-password', async (req, res) => {
-    const body = z.object({ email: z.string().email() }).safeParse(req.body)
+    const body = schemas.forgotPassword.safeParse(req.body)
     if (!body.success) return res.status(400).json(body.error.flatten() satisfies FormResult)
     await rootDb
       .selectFrom(sql`app_public.forgot_password(${body.data.email})`.as('forgot_password'))
@@ -427,15 +401,7 @@ const app = express()
   })
 
   .post('/reset-password', async (req, res) => {
-    const body = z
-      .object({
-        userId: z.string().uuid(),
-        token: z.string(),
-        password: passwordSpec,
-        confirmPassword: z.string(),
-      })
-      .refine(data => data.password === data.confirmPassword, 'passwords must match')
-      .safeParse(req.body)
+    const body = schemas.resetPassword.safeParse(req.body)
     if (!body.success) return res.status(400).json(body.error.flatten() satisfies FormResult)
     try {
       const session = await rootDb
@@ -473,12 +439,7 @@ const app = express()
   })
 
   .post('/verify-email', (req, res) => {
-    const body = z
-      .object({
-        id: z.string().uuid(),
-        token: z.string(),
-      })
-      .safeParse(req.body)
+    const body = schemas.verifyEmail.safeParse(req.body)
     if (!body.success) return res.status(400).json(body.error.flatten() satisfies FormResult)
     return withAuthContext(req, async tx => {
       try {
@@ -501,8 +462,10 @@ const app = express()
 
   .post('/make-email-primary', (req, res) => {
     if (!req.session.user?.user_id)
-      return res.status(401).json({ payload: null } satisfies FormResult)
-    const body = z.object({ emailId: z.string().uuid() }).safeParse(req.body)
+      return res
+        .status(401)
+        .json({ formErrors: ['you must be logged in to do that!'] } satisfies FormResult)
+    const body = schemas.makeEmailPrimary.safeParse(req.body)
     if (!body.success) return res.status(400).json(body.error.flatten() satisfies FormResult)
     return withAuthContext(req, async tx => {
       const result = await tx
@@ -518,8 +481,10 @@ const app = express()
 
   .post('/resend-email-verification-code', (req, res) => {
     if (!req.session.user?.user_id)
-      return res.status(401).json({ payload: null } satisfies FormResult)
-    const body = z.object({ emailId: z.string().uuid() }).safeParse(req.body)
+      return res
+        .status(401)
+        .json({ formErrors: ['you must be logged in to do that!'] } satisfies FormResult)
+    const body = schemas.resendEmailVerification.safeParse(req.body)
     if (!body.success) return res.status(400).json(body.error.flatten() satisfies FormResult)
     return withAuthContext(req, async tx => {
       const result = await tx
@@ -538,8 +503,10 @@ const app = express()
 
   .post('/unlink-auth', (req, res) => {
     if (!req.session.user?.user_id)
-      return res.status(401).json({ payload: null } satisfies FormResult)
-    const body = z.object({ id: z.string().uuid() }).safeParse(req.body)
+      return res
+        .status(401)
+        .json({ formErrors: ['you must be logged in to do that!'] } satisfies FormResult)
+    const body = schemas.unlinkAuth.safeParse(req.body)
     if (!body.success) return res.status(400).json(body.error.flatten() satisfies FormResult)
     return withAuthContext(req, async tx => {
       const { numDeletedRows } = await tx
