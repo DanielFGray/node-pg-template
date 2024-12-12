@@ -5,6 +5,7 @@ import { api } from './api.js'
 import { useNavigate, useSearchParams } from 'react-router'
 import { Spinner } from './stubs.js'
 import { SocialLogin } from './SocialLogin.js'
+import * as schemas from './schemas.js'
 
 type SettingsData = {
   emails: UserEmail[]
@@ -46,7 +47,11 @@ export function ProfileSettings({ currentUser }: { currentUser: User }) {
       method="post"
       onSubmit={async ev => {
         ev.preventDefault()
-        const body = new URLSearchParams(new FormData(ev.currentTarget) as any)
+        const form = schemas.updateProfile.safeParse(
+          Object.fromEntries(new FormData(ev.currentTarget) as any),
+        )
+        if (!form.success) return setResponse(form.error.flatten())
+        const body = new URLSearchParams(form.data)
         const res = await api<FormResult<User>>('/me', { method: 'post', body })
         if (!res.ok) return setResponse(res.error)
         if (!res.data.payload) return setResponse(res.data)
@@ -156,7 +161,11 @@ export function PasswordSettings({
       method="post"
       onSubmit={async ev => {
         ev.preventDefault()
-        const body = new URLSearchParams(new FormData(ev.currentTarget) as any)
+        const form = schemas.changePassword.safeParse(
+          Object.fromEntries(new FormData(ev.currentTarget) as any),
+        )
+        if (!form.success) return setResponse(form.error.flatten())
+        const body = new URLSearchParams(form.data)
         const res = await api<FormResult>('/change-password', { method: 'post', body })
         if (!res.ok) return setResponse(res.error)
         setResponse(res.data)
@@ -326,8 +335,11 @@ function Email({
         method="post"
         onSubmit={async ev => {
           ev.preventDefault()
-          const formdata = new FormData(ev.currentTarget)
-          const body = new URLSearchParams(formdata as any)
+          const form = schemas.withEmailId.safeParse(
+            Object.fromEntries(new FormData(ev.currentTarget) as any),
+          )
+          if (!form.success) return setResponse(form.error.flatten())
+          const body = new URLSearchParams(form.data as any)
           const type = (ev.nativeEvent.submitter as HTMLButtonElement).getAttribute('value')
           switch (type) {
             case 'resendValidation': {
@@ -423,7 +435,11 @@ function AddEmailForm({ refetch }: { refetch: () => void }) {
       data-cy="settings-new-email-form"
       onSubmit={ev => {
         ev.preventDefault()
-        const body = new URLSearchParams(new FormData(ev.currentTarget) as any)
+        const form = schemas.withEmail.safeParse(
+          Object.fromEntries(new FormData(ev.currentTarget) as any),
+        )
+        if (!form.success) return setResponse(form.error.flatten())
+        const body = new URLSearchParams(form.data)
         api<FormResult>('/settings/email', { method: 'post', body }).then(res => {
           if (!res.ok) return setResponse(res.error)
           setResponse(res.data)
@@ -533,7 +549,9 @@ function DeleteAccount() {
       <form
         onSubmit={ev => {
           ev.preventDefault()
-          const body = new URLSearchParams(new FormData(ev.currentTarget) as any)
+          const form = schemas.deleteUser.safeParse(new FormData(ev.currentTarget) as any)
+          if (!form.success) return setResponse(form.error.flatten())
+          const body = new URLSearchParams(form.data)
           api<FormResult<{ confirm_account_deletion: boolean | null }>>('/me', {
             method: 'delete',
             body,

@@ -4,6 +4,7 @@ import { useAuth } from './Auth.ctx.js'
 import type { FormResult, User } from './types.js'
 import { api } from './api.js'
 import { SocialLogin } from './SocialLogin.js'
+import { register as validator } from './schemas.js'
 
 export default function Register() {
   const [response, setResponse] = useState<FormResult>()
@@ -20,9 +21,11 @@ export default function Register() {
         method="POST"
         onSubmit={async ev => {
           ev.preventDefault()
-          const body = new URLSearchParams(
+          const form = validator.safeParse(
             Object.fromEntries(new FormData(ev.currentTarget) as any),
           )
+          if (!form.success) return setResponse(form.error.flatten())
+          const body = new URLSearchParams(form.data)
           const res = await api<FormResult<User>>('/register', { method: 'post', body })
           setResponse(res)
           if (res.data?.payload) {

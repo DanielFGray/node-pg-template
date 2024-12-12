@@ -3,6 +3,7 @@ import { api } from './api.js'
 import type { FormResult, User } from './types.js'
 import { useNavigate, useSearchParams } from 'react-router'
 import { useAuth } from './Auth.ctx.js'
+import { resetPassword as validator } from './schemas.js'
 
 export function ResetPass() {
   const navigate = useNavigate()
@@ -18,7 +19,11 @@ export function ResetPass() {
         method="POST"
         onSubmit={async ev => {
           ev.preventDefault()
-          const body = new URLSearchParams(new FormData(ev.currentTarget) as any)
+          const form = validator.safeParse(
+            Object.fromEntries(new FormData(ev.currentTarget) as any),
+          )
+          if (!form.success) return setResponse(form.error.flatten())
+          const body = new URLSearchParams(form.data)
           const res = await api<FormResult<{ user: User }>>('/reset-password', {
             method: 'post',
             body,

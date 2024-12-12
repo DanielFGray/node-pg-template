@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { api } from './api.js'
 import type { FormResult } from './types.js'
+import { forgotPassword as validator } from './schemas.js'
 
 export default function ForgotPassword() {
   const [response, setResponse] = useState<FormResult>()
@@ -16,7 +17,9 @@ export default function ForgotPassword() {
     <form
       onSubmit={async ev => {
         ev.preventDefault()
-        const body = new URLSearchParams(new FormData(ev.currentTarget) as any)
+        const form = validator.safeParse(Object.fromEntries(new FormData(ev.currentTarget) as any))
+        if (!form.success) return setResponse(form.error.flatten())
+        const body = new URLSearchParams(form.data)
         const res = await api<FormResult>('/forgot-password', { method: 'post', body })
         if (!res.ok) return setResponse(res.error)
         setResponse(res.data)
