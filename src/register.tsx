@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router'
 import { useAuth } from './Auth.ctx.js'
 import type { FormResult, User } from './types.js'
 import { api } from './api.js'
-import { SocialLogin } from './SocialLogin.js'
+import { SocialLogin } from './components.js'
 import { register as validator } from './schemas.js'
 
 export default function Register() {
