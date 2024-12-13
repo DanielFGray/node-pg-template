@@ -1,5 +1,22 @@
 import z from 'zod'
 
+export const privacy = z.enum(['public', 'private'])
+export const post = z
+  .object({
+    id: z.number(),
+    user_id: z.string().uuid(),
+    privacy,
+    body: z.string(),
+    created_at: z.string(),
+    updated_at: z.string(),
+  })
+  .strict()
+export const createPost = z
+  .object({ body: z.string(), privacy: privacy.default('public') })
+  .strict()
+export const updatePost = post.pick({ id: true, body: true, privacy: true })
+export const deletePost = post.pick({ id: true })
+
 export const username = z
   .string()
   .refine(n => /^\w+$/.test(n), 'username may only contain numbers, letters, and underscores')

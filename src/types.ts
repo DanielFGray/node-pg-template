@@ -10,4 +10,5 @@ export type {
   AppPublicUsers as User,
   AppPublicUserEmails as UserEmail,
   AppPublicUserAuthentications as UserAuthentication,
+  AppPublicPosts as Post,
 } from 'kysely-codegen'
