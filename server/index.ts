@@ -66,6 +66,42 @@ const app = express()
     }),
   )
 
+  .get('/posts', async (req, res) => {
+    withAuthContext(req, async tx => {
+      const posts = await tx
+        .selectFrom('app_public.posts')
+        .innerJoin('app_public.users', 'app_public.posts.user_id', 'app_public.users.id')
+        .select([
+          'app_public.posts.id',
+          'app_public.posts.body',
+          'app_public.posts.privacy',
+          'app_public.posts.created_at',
+          'app_public.posts.updated_at',
+          sql<User[]>`to_json(app_public.users.*)`.as('user'),
+        ])
+        .execute()
+      res.json({ ok: true, payload: posts } satisfies FormResult)
+    })
+  })
+
+  .post('/posts', async (req, res) => {
+    withAuthContext(req, async tx => {
+      const { data: body } = schemas.createPost.safeParse(req.body)
+      if (!body) return res.status(400).json({ ok: false } satisfies FormResult)
+      try {
+        const post = await tx
+          .insertInto('app_public.posts')
+          .values(body)
+          .returningAll()
+          .executeTakeFirstOrThrow()
+        res.json({ ok: true, payload: post } satisfies FormResult)
+      } catch (err) {
+        log.error('%O', err)
+        res.json({ ok: false } satisfies FormResult)
+      }
+    })
+  })
+
   .post('/register', (req, res) => {
     const body = schemas.register.safeParse(req.body)
     if (!body.success) return res.status(400).json(body.error.flatten() satisfies FormResult)
