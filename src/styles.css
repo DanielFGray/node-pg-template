@@ -58,6 +58,12 @@ fieldset {
   margin: 0 auto;
   max-width: 36em;
   padding: 1em;
+  padding-top: 0.5em;
+  display: flex;
+  gap: 0.5em;
+  flex-direction: column;
+  border: 1px solid #ccc;
+  border-radius: 0.5em;
 }
 
 .form-row {
