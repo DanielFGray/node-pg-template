@@ -3,9 +3,20 @@
 context('change password', () => {
   beforeEach(() => cy.serverCommand('clearTestUsers'))
 
+  it('can navigate to settings page', () => {
+    // Setup
+    cy.login({ redirectTo: '/', password: null, verified: true })
+
+    // Action
+    cy.getCy('nav-settings').click()
+    cy.url().should('equal', Cypress.env('VITE_ROOT_URL') + '/settings')
+  })
+
   it('user can change password, log out, and log in with new password', () => {
     // Setup
     cy.login({ redirectTo: '/settings', password: 'oldpassword', verified: true })
+
+    cy.url().should('equal', Cypress.env('VITE_ROOT_URL') + '/settings') // Should be on settings
 
     // Action
     cy.getCy('settings-old-password-input').type('oldpassword!') // use incorrect password

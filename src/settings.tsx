@@ -52,11 +52,8 @@ export function ProfileSettings({ currentUser }: { currentUser: User }) {
         if (!form.success) return setResponse(form.error.flatten())
         const body = new URLSearchParams(form.data)
         const res = await api<FormResult<User>>('/me', { method: 'post', body })
-        if (!res.ok) return setResponse(res.error)
-        if (!res.data.payload) return setResponse(res.data)
-        const { payload, ...data } = res.data
-        setResponse(data)
-        auth.setUser(payload)
+        setResponse(res)
+        if (res.payload) auth.setUser(res.payload)
       }}
     >
       <fieldset>
@@ -136,8 +133,7 @@ export function PasswordSettings({
           if (!primaryEmail) throw new Error('no primary email')
           const body = new URLSearchParams([['email', primaryEmail]])
           const res = await api<FormResult>('/forgot-password', { method: 'post', body })
-          if (!res.ok) return setResponse(res.error)
-          setResponse(res.data)
+          setResponse(res)
         }}
       >
         <fieldset>
@@ -189,7 +185,7 @@ export function PasswordSettings({
           <label htmlFor="settings-new-password-input">new password:</label>
           <input
             type="password"
-            name="newPassword"
+            name="password"
             id="settings-new-password-input"
             minLength={6}
             autoComplete="new-password"
@@ -221,6 +217,7 @@ export function PasswordSettings({
             </div>
           ))}
         </div>
+
         <div>
           <FormErrors response={response} />
           <button type="submit" data-cy="settings-change-password-submit">
@@ -276,7 +273,7 @@ function Email({
   return (
     <li
       className="flex-row justify-between"
-      data-cy={`email-settings-item-${email.email.replace(/[^a-zA-Z0-9]/g, '-')}`}
+      data-cy={`email-settings-item-${email.email.replace(/\W/g, '-')}`}
     >
       <div>
         {`✉️ ${email.email} `}
@@ -311,26 +308,19 @@ function Email({
               const res = await api<FormResult>('/resend-email-verification-code', {
                 method: 'post',
                 body,
-              }).then(res => {
-                if (!res.ok) return setResponse(res.error)
-                setResponse(res.data)
-                refetch()
               })
-              if (!res.ok) return setResponse(res.error)
-              setResponse(res.data)
+              setResponse(res)
               return refetch()
             }
             case 'deleteEmail': {
               const res = await api<FormResult>('/settings/email', { method: 'delete', body })
-              if (!res.ok) return setResponse(res.error)
-              setResponse(res.data)
+              setResponse(res)
               return refetch()
             }
             case 'makePrimary': {
               const res = await api<FormResult>('/make-email-primary', { method: 'post', body })
-              if (!res.ok) return setResponse(res.error)
-              setResponse(res.data)
-              refetch()
+              setResponse(res)
+              return refetch()
             }
           }
         }}
@@ -399,20 +389,19 @@ function AddEmailForm({ refetch }: { refetch: () => void }) {
     <form
       method="post"
       data-cy="settings-new-email-form"
-      onSubmit={ev => {
+      onSubmit={async ev => {
         ev.preventDefault()
         const form = schemas.withEmail.safeParse(
           Object.fromEntries(new FormData(ev.currentTarget) as any),
         )
         if (!form.success) return setResponse(form.error.flatten())
         const body = new URLSearchParams(form.data)
-        api<FormResult>('/settings/email', { method: 'post', body }).then(res => {
-          if (!res.ok) return setResponse(res.error)
-          setResponse(res.data)
-          refetch()
-          ev.target.reset()
-          setShowForm(false)
-        })
+        const res = await api<FormResult>('/settings/email', { method: 'post', body })
+        if (!res.ok) return setResponse(res.error)
+        setResponse(res.data)
+        refetch()
+        ev.target.reset()
+        setShowForm(false)
       }}
     >
       <div className="form-row">
@@ -447,13 +436,16 @@ function LinkedAccounts({ authentications, refetch }: SettingsData & { refetch: 
   return (
     <fieldset>
       <legend>manage linked accounts</legend>
-      {authentications.map(auth => (
-        <div key={auth.id}>
-          <strong>{auth.service}</strong>
-          <div>Added {new Date(Date.parse(auth.created_at)).toLocaleString()}</div>
-          <UnlinkAccountButton refetch={refetch} key="unlink" id={auth.id} />
-        </div>
-      ))}
+      {authentications.flatMap(auth => {
+        if (!auth.id) return []
+        return (
+          <div key={auth.id}>
+            <strong>{auth.service}</strong>
+            <div>Added {new Date(Date.parse(auth.created_at)).toLocaleString()}</div>
+            <UnlinkAccountButton refetch={refetch} key="unlink" id={auth.id} />
+          </div>
+        )
+      })}
       <SocialLogin
         filter={authentications.map(a => a.service.toLowerCase())}
         redirectTo="/settings"
@@ -472,9 +464,7 @@ function UnlinkAccountButton({ id, refetch }: { refetch: () => void; id: string 
           onSubmit={ev => {
             ev.preventDefault()
             const body = new URLSearchParams(new FormData(ev.currentTarget) as any)
-            api<FormResult>('/unlink-auth', { method: 'post', body }).then(res => {
-              setTimeout(refetch, 50)
-            })
+            api<FormResult>('/unlink-auth', { method: 'post', body }).then(refetch)
           }}
         >
           <b>Are you sure?</b>
@@ -504,22 +494,21 @@ function DeleteAccount() {
   if (token)
     return (
       <form
-        onSubmit={ev => {
+        onSubmit={async ev => {
           ev.preventDefault()
-          const form = schemas.deleteUser.safeParse(new FormData(ev.currentTarget) as any)
+          const form = schemas.deleteUser.safeParse({ token })
           if (!form.success) return setResponse(form.error.flatten())
           const body = new URLSearchParams(form.data)
-          api<FormResult<{ confirm_account_deletion: boolean | null }>>('/me', {
+          const res = await api<FormResult<{ confirm_account_deletion: boolean | null }>>('/me', {
             method: 'delete',
             body,
-          }).then(res => {
-            if (res.ok && res.data.payload?.confirm_account_deletion) {
-              navigate('/')
-              setTimeout(() => {
-                auth.setUser(null)
-              }, 10)
-            }
           })
+          if (res.data?.payload?.confirm_account_deletion) {
+            navigate('/')
+            setTimeout(() => {
+              auth.setUser(null)
+            }, 10)
+          }
         }}
       >
         <fieldset>
