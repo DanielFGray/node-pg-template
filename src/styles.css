@@ -71,14 +71,23 @@ fieldset {
 }
 
 .form-row {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  max-width: 32em;
+  display: flex;
+  flex-direction: column;
 }
 
-.form-row input {
-  width: 100%;
-  grid-column: span 2 / span 2;
+@media (min-width: 800px) {
+  .form-row {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .form-row > *:nth-child(1) {
+    padding-right: 0.5em;
+  }
+
+  .form-row > *:nth-child(2) {
+    grid-column: span 2 / span 2;
+  }
 }
 
 form .field-message {
