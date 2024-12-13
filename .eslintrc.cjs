@@ -63,12 +63,18 @@ module.exports = {
       plugins: ['cypress'],
       extends: ['plugin:cypress/recommended'],
     },
+
+    {
+      files: ['./src/**/{js,ts,jsx,tsx,cjs,mjs}', './server/**/{js,ts,jsx,tsx,cjs,mjs}'],
+      rules: {
+        'no-console': 'error',
+      },
+    },
   ],
 
   rules: {
     'no-unexpected-multiline': 'error',
     'no-unused-vars': 'warn',
     'valid-jsdoc': 'warn',
-    'no-console': 'warn',
   },
 }
