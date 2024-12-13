@@ -530,7 +530,7 @@ function DeleteAccount() {
             want your account.
           </p>
           <p>
-            <button>PERMANENTLY DELETE MY ACCOUNT</button>
+            <button data-cy="account-delete-confirm-button">PERMANENTLY DELETE MY ACCOUNT</button>
             <input type="hidden" name="token" value={token} />
           </p>
         </fieldset>
@@ -549,19 +549,19 @@ function DeleteAccount() {
   return (
     <form
       method="post"
-      onSubmit={ev => {
+      onSubmit={async ev => {
         ev.preventDefault()
-        api<FormResult>('/me', { method: 'delete' }).then(res => {
-          if (!res.ok) return setResponse(res.error)
-          return setResponse(res.data)
-        })
+        const res = await api<FormResult>('/me', { method: 'delete' })
+        setResponse(res)
       }}
     >
       <fieldset>
         <legend>danger zone</legend>
         <div>
           <FormErrors response={response} />
-          <button name="submit">I want to delete my account</button>
+          <button name="submit" data-cy="account-delete-request-button">
+            I want to delete my account
+          </button>
         </div>
       </fieldset>
     </form>
