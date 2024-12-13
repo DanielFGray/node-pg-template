@@ -54,6 +54,10 @@ ul {
   gap: 1rem;
 }
 
+legend {
+  font-weight: 500;
+}
+
 fieldset {
   margin: 0 auto;
   max-width: 36em;
