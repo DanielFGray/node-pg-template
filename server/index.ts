@@ -9,7 +9,7 @@ import { randomNumber } from '#lib/index.js'
 import { setTimeout } from 'node:timers/promises'
 import { env } from './assertEnv.js'
 import { z } from 'zod'
-import { GitHub, OAuth2RequestError, OAuth2Tokens, generateState } from 'arctic'
+import { GitHub, OAuth2RequestError, generateState } from 'arctic'
 import { parseCookies, serializeCookie } from 'oslo/cookie'
 import log from './log.js'
 import * as schemas from '#app/schemas.js'
@@ -154,15 +154,13 @@ const app = express()
     const { id, password } = body.data
     req.session.regenerate(async () => {
       try {
-        const {
-          rows: [session],
-        } = await sql`
-          select u.* from app_private.login(
-            ${id}::citext,
-            ${password}
-          ) u
-          where not (u is null)
-        `.execute(rootDb)
+        const session = await rootDb
+          .selectFrom(eb =>
+            eb.fn<Session>('app_private.login', [eb.val(id), eb.val(password)]).as('u'),
+          )
+          .selectAll()
+          .where(eb => eb.not(eb('u', 'is', null)))
+          .executeTakeFirst()
         if (!session) {
           await setTimeout(randomNumber(100, 400))
           return res.status(401).json({
@@ -219,7 +217,7 @@ const app = express()
           ) _a,
           lateral (
             select
-              json_agg(e.* order by created_at) as emails
+              coalesce(json_agg(e.* order by created_at), '[]') as emails
             from
               app_public.user_emails e
             where
@@ -338,7 +336,7 @@ const app = express()
       try {
         await tx
           .selectFrom(
-            sql`app_public.change_password(${body.data.oldPassword}, ${body.data.newPassword})`.as(
+            sql`app_public.change_password(${body.data.oldPassword}, ${body.data.password})`.as(
               'change_password',
             ),
           )
@@ -417,7 +415,7 @@ const app = express()
             )
             .selectAll()
             .executeTakeFirst()
-          res.json(result)
+          res.json({ ok: true, payload: result } satisfies FormResult)
         }
       } catch (err) {
         log.error(err)
@@ -484,7 +482,7 @@ const app = express()
             tx
               .fn<{
                 verify_email: boolean | null
-              }>('app_public.verify_email', [eb.val(body.data.id), eb.val(body.data.token)])
+              }>('app_public.verify_email', [eb.val(body.data.emailId), eb.val(body.data.token)])
               .as('verify_email'),
           )
           .selectAll()

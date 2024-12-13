@@ -28,7 +28,7 @@ context('reset password', () => {
     cy.getCy('forgot-submit-button').click()
 
     // Assertion
-    cy.contains('email sent').should('exist')
+    cy.contains('sent a link to your email').should('exist')
 
     cy.serverCommand('getUserSecrets', { username: 'testuser' }).then(sc => {
       const token = sc.reset_password_token
