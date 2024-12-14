@@ -91,14 +91,16 @@ fieldset {
 }
 
 form .field-message {
-  font-weight: 600;
   color: green;
-  grid-column: span 3 / span 3;
 }
 
 form .field-error {
-  font-weight: 600;
   color: red;
+}
+
+form .field-error,
+form .field-message {
+  font-weight: 600;
   grid-column: span 3 / span 3;
 }
 
