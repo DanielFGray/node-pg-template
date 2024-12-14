@@ -23,7 +23,8 @@ context('RegisterAccount', () => {
     cy.getCy('register-submit-button').click()
 
     // Assertions
-    cy.getCy('register-email-label').should('exist')
+    cy.contains('username must').should('exist')
+    cy.contains('password must').should('exist')
   })
 
   context('Account creation', () => {
