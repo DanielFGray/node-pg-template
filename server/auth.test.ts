@@ -41,6 +41,16 @@ describe('auth:user', () => {
     expect(error).toEqual({ fieldErrors: { username: ['username already exists'] } })
   })
 
+  it('can login with correct password', async () => {
+    const { data } = await api<FormResult<User>>('/login', {
+      method: 'post',
+      body: new URLSearchParams({ id: user.email, password: user.password }),
+    })
+    expect(data?.payload).toBeInstanceOf(Object)
+    expect(data?.payload?.id).toEqual(userId)
+    expect(data?.payload?.username).toEqual(user.username)
+  })
+
   it('can not login with wrong password', async () => {
     const { data, error } = await api<FormResult>('/login', {
       method: 'post',
