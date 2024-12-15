@@ -47,7 +47,7 @@ export function ProfileSettings({ currentUser }: { currentUser: User }) {
       onSubmit={async ev => {
         ev.preventDefault()
         const form = schemas.updateProfile.safeParse(
-          Object.fromEntries(new FormData(ev.currentTarget) as any),
+          Object.fromEntries(new FormData(ev.currentTarget)),
         )
         if (!form.success) return setResponse(form.error.flatten())
         const body = new URLSearchParams(form.data)
@@ -148,7 +148,7 @@ export function PasswordSettings({
       onSubmit={async ev => {
         ev.preventDefault()
         const form = schemas.changePassword.safeParse(
-          Object.fromEntries(new FormData(ev.currentTarget) as any),
+          Object.fromEntries(new FormData(ev.currentTarget)),
         )
         if (!form.success) return setResponse(form.error.flatten())
         const body = new URLSearchParams(form.data)
@@ -298,10 +298,10 @@ function Email({
         onSubmit={async ev => {
           ev.preventDefault()
           const form = schemas.withEmailId.safeParse(
-            Object.fromEntries(new FormData(ev.currentTarget) as any),
+            Object.fromEntries(new FormData(ev.currentTarget)),
           )
           if (!form.success) return setResponse(form.error.flatten())
-          const body = new URLSearchParams(form.data as any)
+          const body = new URLSearchParams(form.data)
           const type = (ev.nativeEvent.submitter as HTMLButtonElement).getAttribute('value')
           switch (type) {
             case 'resendValidation': {
@@ -391,9 +391,7 @@ function AddEmailForm({ refetch }: { refetch: () => void }) {
       data-cy="settings-new-email-form"
       onSubmit={async ev => {
         ev.preventDefault()
-        const form = schemas.withEmail.safeParse(
-          Object.fromEntries(new FormData(ev.currentTarget) as any),
-        )
+        const form = schemas.withEmail.safeParse(Object.fromEntries(new FormData(ev.currentTarget)))
         if (!form.success) return setResponse(form.error.flatten())
         const body = new URLSearchParams(form.data)
         const res = await api<FormResult>('/settings/email', { method: 'post', body })

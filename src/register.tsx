@@ -18,20 +18,16 @@ export default function Register() {
   return (
     <>
       <form
-        method="POST"
         onSubmit={async ev => {
           ev.preventDefault()
-          const form = validator.safeParse(
-            Object.fromEntries(new FormData(ev.currentTarget) as any),
-          )
-          if (!form.success) return setResponse({ ok: false, ...form.error.flatten() })
+          const form = validator.safeParse(Object.fromEntries(new FormData(ev.currentTarget)))
+          if (!form.success) return setResponse(form.error.flatten())
           const body = new URLSearchParams(form.data)
           const res = await api<FormResult<User>>('/register', { method: 'post', body })
-          if (!res.ok) return setResponse(res.error)
-          setResponse(res.data)
-          if (res.data?.payload) {
+          setResponse(res)
+          if (res?.payload) {
             navigate(params.get('redirectTo') || '/')
-            auth.setUser(res.data.payload)
+            auth.setUser(res.payload)
           }
         }}
       >

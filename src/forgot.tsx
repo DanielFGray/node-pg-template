@@ -17,7 +17,7 @@ export default function ForgotPassword() {
     <form
       onSubmit={async ev => {
         ev.preventDefault()
-        const form = validator.safeParse(Object.fromEntries(new FormData(ev.currentTarget) as any))
+        const form = validator.safeParse(Object.fromEntries(new FormData(ev.currentTarget)))
         if (!form.success) return setResponse(form.error.flatten())
         const body = new URLSearchParams(form.data)
         const res = await api<FormResult>('/forgot-password', { method: 'post', body })

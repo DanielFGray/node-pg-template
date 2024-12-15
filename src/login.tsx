@@ -21,9 +21,7 @@ export default function Login() {
         method="POST"
         onSubmit={async ev => {
           ev.preventDefault()
-          const form = validator.safeParse(
-            Object.fromEntries(new FormData(ev.currentTarget) as any),
-          )
+          const form = validator.safeParse(Object.fromEntries(new FormData(ev.currentTarget)))
           if (!form.success) return setResponse(form.error.flatten())
           const body = new URLSearchParams(form.data)
           const res = await api<FormResult<User>>('/login', { method: 'post', body })
