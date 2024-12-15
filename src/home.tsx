@@ -35,7 +35,7 @@ function NewPost({ refetch }: { refetch: () => void }) {
       onSubmit={async ev => {
         ev.preventDefault()
         const form = validator.safeParse(Object.fromEntries(new FormData(ev.currentTarget)))
-        if (!form.success) return setResponse({ ok: false, ...form.error.flatten() })
+        if (!form.success) return setResponse(form.error.flatten())
         const body = new URLSearchParams(form.data)
         const res = await api<FormResult<Post[]>>('/posts', { method: 'post', body })
         if (!res.ok) return setResponse(res.error)
@@ -49,11 +49,11 @@ function NewPost({ refetch }: { refetch: () => void }) {
           <textarea
             name="body"
             aria-describedby="new-post-help"
-            aria-invalid={Boolean(response?.fieldErrors?.username)}
+            aria-invalid={Boolean(response?.fieldErrors?.body)}
             style={{ width: '100%' }}
             data-cy="new-post-input"
           ></textarea>
-          {response?.fieldErrors?.username?.map(e => (
+          {response?.fieldErrors?.body?.map(e => (
             <div className="field-error" key={e} id="new-post-help">
               {e}
             </div>

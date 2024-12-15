@@ -12,7 +12,10 @@ export const post = z
   })
   .strict()
 export const createPost = z
-  .object({ body: z.string(), privacy: privacy.default('public') })
+  .object({
+    body: z.string().refine(b => b.length > 0, 'body cannot be empty'),
+    privacy: privacy.default('public'),
+  })
   .strict()
 export const updatePost = post.pick({ id: true, body: true, privacy: true })
 export const deletePost = post.pick({ id: true })

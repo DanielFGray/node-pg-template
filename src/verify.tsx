@@ -10,8 +10,8 @@ export default function Verify() {
   const token = params.get('token')
 
   const [response, setResponse] = useState<FormResult<{ verify_email: boolean }>>(() => {
-    if (!(id && token)) return { ok: false, formErrors: ['Missing id or token'] }
-    return { ok: true }
+    if (!(id && token)) return { formErrors: ['Missing id or token'] }
+    return {}
   })
 
   useEffect(() => {

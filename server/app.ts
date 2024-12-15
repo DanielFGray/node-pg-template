@@ -16,6 +16,7 @@ import * as schemas from '#app/schemas.js'
 
 declare module 'express-session' {
   interface SessionData {
+    redirectTo?: string
     user?: null | {
       user_id: string
       session_id: string
@@ -24,17 +25,6 @@ declare module 'express-session' {
 }
 
 const rootUrl = env.VITE_ROOT_URL
-
-const usernameSpec = z
-  .string()
-  // this is also enforced in the database but this gives nicer error messages
-  .refine(n => n.length >= 3 && n.length <= 64, 'username must be between 3 and 64 characters')
-// .refine(n => /^\w+$/, 'username may only contain numbers, letters, and underscores')
-
-const passwordSpec = z
-  .string()
-  .refine(pw => pw.length >= 6, 'password must be at least 6 characters')
-// .refine(pw => /\W/.test(pw), 'password must contain a number or symbol')
 
 const MILLISECONDS = 1000
 const DAY = 86400
@@ -80,24 +70,26 @@ export const app = express()
           sql<User[]>`to_json(app_public.users.*)`.as('user'),
         ])
         .execute()
-      res.json({ ok: true, payload: posts } satisfies FormResult)
+      res.json({ payload: posts } satisfies FormResult)
     })
   })
 
   .post('/posts', async (req, res) => {
     withAuthContext(req, async tx => {
-      const { data: body } = schemas.createPost.safeParse(req.body)
-      if (!body) return res.status(400).json({ ok: false } satisfies FormResult)
+      const body = schemas.createPost.safeParse(req.body)
+      if (!body.success) return res.status(400).json(body.error.flatten() satisfies FormResult)
       try {
         const post = await tx
           .insertInto('app_public.posts')
-          .values(body)
+          .values(body.data)
           .returningAll()
           .executeTakeFirstOrThrow()
-        res.json({ ok: true, payload: post } satisfies FormResult)
+        res.json({ payload: post } satisfies FormResult)
       } catch (err) {
         log.error('%O', err)
-        res.json({ ok: false } satisfies FormResult)
+        res.json({
+          formErrors: ['there was an error processing your request'],
+        } satisfies FormResult)
       }
     })
   })
@@ -159,7 +151,8 @@ export const app = express()
             eb.fn<Session>('app_private.login', [eb.val(id), eb.val(password)]).as('u'),
           )
           .selectAll()
-          .where(eb => eb.not(eb('u', 'is', null)))
+          // @ts-expect-error kysely types expect a column? still produces valid sql
+          .where(eb => eb.not(eb(eb.ref('u'), 'is', null)))
           .executeTakeFirst()
         if (!session) {
           await setTimeout(randomNumber(100, 400))
@@ -183,7 +176,7 @@ export const app = express()
             : '/'
           res.format({
             json: () => res.json({ payload: user ?? null } satisfies FormResult),
-            html: () => res.redirect(rootUrl + redir),
+            html: () => res.redirect(`${rootUrl}${redir}`),
           })
         })
       } catch (err) {
@@ -272,7 +265,8 @@ export const app = express()
           .returningAll()
           .execute()
         res.json({ payload: result } satisfies FormResult)
-      } catch (err) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } catch (err: any) {
         if (err.code == 'EMTKN') {
           return res.status(400).json({
             formErrors: [err.message],
@@ -311,6 +305,7 @@ export const app = express()
             } satisfies FormResult),
           html: () => res.redirect(rootUrl + '/settings'),
         })
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (err: any) {
         if (err.code === '23505') {
           return res.status(403).json({
@@ -346,6 +341,7 @@ export const app = express()
           json: () => res.json({ formMessages: ['password updated'] } satisfies FormResult),
           html: () => res.redirect(rootUrl + '/settings'),
         })
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (err: any) {
         if (err.code === 'CREDS')
           return res.status(400).json({
@@ -376,7 +372,7 @@ export const app = express()
     if (!req.session.user?.user_id)
       return res
         .status(401)
-        .json({ formErrors: ['you must be logged in to do that!'] } satisfies formresult)
+        .json({ formErrors: ['you must be logged in to do that!'] } satisfies FormResult)
     const { data: body } = schemas.deleteUser.safeParse(req.body)
     return withAuthContext(req, async tx => {
       try {
@@ -415,7 +411,7 @@ export const app = express()
             )
             .selectAll()
             .executeTakeFirst()
-          res.json({ ok: true, payload: result } satisfies FormResult)
+          res.json({ payload: result } satisfies FormResult)
         }
       } catch (err) {
         log.error(err)
@@ -587,11 +583,13 @@ if (!(env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET)) {
   } satisfies Record<z.infer<typeof providerSpec>, unknown>
 
   app.get('/auth/:provider', (req, res) => {
-    const params = providerSpec.safeParse(req.params.provider)
+    const params = z.object({ provider: providerSpec }).safeParse({ provider: req.params.provider })
     if (!params.success) return res.status(400).json(params.error.flatten() satisfies FormResult)
-    const provider = oauthProviders[params.data]
+    const provider = oauthProviders[params.data.provider]
     const state = generateState()
     const url = provider.createAuthorizationURL(state, ['user:email'])
+    const redir = req.query.redirectTo?.toString()
+    if (redir?.startsWith('/')) req.session.redirectTo = redir
     res
       .appendHeader(
         'Set-Cookie',
@@ -613,10 +611,6 @@ if (!(env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET)) {
     const state = req.query.state?.toString() ?? null
     const storedState = parseCookies(req.headers.cookie ?? '').get('github_oauth_state') ?? null
     if (!code || !state || !storedState || state !== storedState) return res.status(400).end()
-    const redir = req.query.redirectTo?.toString().startsWith('/')
-      ? decodeURIComponent(req.query.redirectTo?.toString())
-      : '/'
-    log.debug('oauth redirect to %s', redir)
     try {
       const tokens = await oauthProviders.github.validateAuthorizationCode(code)
       const {
@@ -674,8 +668,9 @@ if (!(env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET)) {
       }
       res.format({
         json: () => res.json({ payload: { user_id: session.user_id } } satisfies FormResult),
-        html: () => res.redirect(rootUrl + redir ? decodeURIComponent(redir!) : ''),
+        html: () => res.redirect(`${rootUrl}${req.session.redirectTo ?? '/'}`),
       })
+      delete req.session.redirectTo
     } catch (err) {
       if (err instanceof OAuth2RequestError && err.message === 'bad_verification_code') {
         return res.status(400).end()

@@ -52,8 +52,9 @@ export function ProfileSettings({ currentUser }: { currentUser: User }) {
         if (!form.success) return setResponse(form.error.flatten())
         const body = new URLSearchParams(form.data)
         const res = await api<FormResult<User>>('/me', { method: 'post', body })
-        setResponse(res)
-        if (res.payload) auth.setUser(res.payload)
+        if (!res.ok) return setResponse(res.error)
+        setResponse(res.data)
+        if (res.data.payload) auth.setUser(res.data.payload)
       }}
     >
       <fieldset>
@@ -133,7 +134,8 @@ export function PasswordSettings({
           if (!primaryEmail) throw new Error('no primary email')
           const body = new URLSearchParams([['email', primaryEmail]])
           const res = await api<FormResult>('/forgot-password', { method: 'post', body })
-          setResponse(res)
+          if (!res.ok) return setResponse(res.error)
+          setResponse(res.data)
         }}
       >
         <fieldset>
@@ -309,17 +311,20 @@ function Email({
                 method: 'post',
                 body,
               })
-              setResponse(res)
+              if (!res.ok) return setResponse(res.error)
+              setResponse(res.data)
               return refetch()
             }
             case 'deleteEmail': {
               const res = await api<FormResult>('/settings/email', { method: 'delete', body })
-              setResponse(res)
+              if (!res.ok) return setResponse(res.error)
+              setResponse(res.data)
               return refetch()
             }
             case 'makePrimary': {
               const res = await api<FormResult>('/make-email-primary', { method: 'post', body })
-              setResponse(res)
+              if (!res.ok) return setResponse(res.error)
+              setResponse(res.data)
               return refetch()
             }
           }
@@ -459,10 +464,11 @@ function UnlinkAccountButton({ id, refetch }: { refetch: () => void; id: string 
     <div>
       {modalOpen ? (
         <form
-          onSubmit={ev => {
+          onSubmit={async ev => {
             ev.preventDefault()
-            const body = new URLSearchParams(new FormData(ev.currentTarget) as any)
-            api<FormResult>('/unlink-auth', { method: 'post', body }).then(refetch)
+            const body = new URLSearchParams(ev.currentTarget)
+            await api<FormResult>('/unlink-auth', { method: 'post', body })
+            refetch()
           }}
         >
           <b>Are you sure?</b>
@@ -501,7 +507,8 @@ function DeleteAccount() {
             method: 'delete',
             body,
           })
-          if (res.data?.payload?.confirm_account_deletion) {
+          if (!res.ok) return setResponse(res.error)
+          if (res.data.payload?.confirm_account_deletion) {
             navigate('/')
             setTimeout(() => {
               auth.setUser(null)
@@ -539,7 +546,8 @@ function DeleteAccount() {
       onSubmit={async ev => {
         ev.preventDefault()
         const res = await api<FormResult>('/me', { method: 'delete' })
-        setResponse(res)
+        if (!res.ok) return setResponse(res.error)
+        setResponse(res.data)
       }}
     >
       <fieldset>

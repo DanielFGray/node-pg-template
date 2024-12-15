@@ -3,7 +3,7 @@ import pg from 'pg'
 import { randomBytes } from 'node:crypto'
 import './assertEnv'
 import { api } from '#app/api.js'
-import type { FormResult } from '#app/types.js'
+import type { FormResult, User } from '#app/types.js'
 
 const user = (() => {
   const password = randomBytes(8).toString('hex')
