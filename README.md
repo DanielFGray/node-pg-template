@@ -2,6 +2,19 @@
 
 using javascript and sql for everything
 
+## Features
+
+* username/password login
+* oauth login with github
+* account verification via email
+* reset password via email
+* settings page to manage
+  * account profile
+  * changing password
+  * add/delete email
+  * switching primary email
+  * delete account
+
 ## Getting started
 
 ```sh
@@ -17,6 +30,7 @@ The `init` scripts assume you have `docker` and `docker-compose` installed
 ## Roadmap
 
 - [x] testing
+- [ ] real-time notifications using `NOTIFY`/`LISTEN`
 - [ ] typed rpc
 - [ ] observability
 - [ ] server-side rendering?
