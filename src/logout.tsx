@@ -11,7 +11,6 @@ export default function Logout() {
   }
   return (
     <form
-      method="POST"
       onSubmit={async ev => {
         ev.preventDefault()
         await api('/logout', { method: 'post' })

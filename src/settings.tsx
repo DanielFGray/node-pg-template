@@ -41,7 +41,6 @@ export function ProfileSettings({ currentUser }: { currentUser: User }) {
   const auth = useAuth()
   return (
     <form
-      method="post"
       onSubmit={async ev => {
         ev.preventDefault()
         const form = schemas.updateProfile.safeParse(
@@ -142,7 +141,6 @@ export function PasswordSettings({
     )
   return (
     <form
-      method="post"
       onSubmit={async ev => {
         ev.preventDefault()
         const form = schemas.changePassword.safeParse(
@@ -291,7 +289,6 @@ function Email({
         <FormErrors response={response} />
       </div>
       <form
-        method="post"
         onSubmit={async ev => {
           ev.preventDefault()
           const form = schemas.withEmailId.safeParse(
@@ -384,7 +381,6 @@ function AddEmailForm({ refetch }: { refetch: () => void }) {
   }
   return (
     <form
-      method="post"
       data-cy="settings-new-email-form"
       onSubmit={async ev => {
         ev.preventDefault()
@@ -533,7 +529,6 @@ function DeleteAccount() {
     )
   return (
     <form
-      method="post"
       onSubmit={async ev => {
         ev.preventDefault()
         const res = await api<FormResult>('/me', { method: 'delete' })
