@@ -18,16 +18,15 @@ export default function Login() {
   return (
     <>
       <form
-        method="POST"
         onSubmit={async ev => {
           ev.preventDefault()
           const form = validator.safeParse(Object.fromEntries(new FormData(ev.currentTarget)))
           if (!form.success) return setResponse(form.error.flatten())
           const body = new URLSearchParams(form.data)
           const res = await api<FormResult<User>>('/login', { method: 'post', body })
-          if (!res.ok) return setResponse(res.error)
-          if (res.data?.payload?.id) {
-            auth.setUser(res.data.payload)
+          setResponse(res)
+          if (res?.payload?.id) {
+            auth.setUser(res.payload)
             navigate(params.get('redirectTo') || '/')
           }
         }}

@@ -26,8 +26,9 @@ export default function ResetPass() {
             method: 'post',
             body,
           })
-          if (res.ok && res.data.payload?.user) {
-            auth.setUser(res.data.payload.user)
+          setResponse(res)
+          if (res.payload?.user) {
+            auth.setUser(res.payload.user)
             navigate(params.get('redirectTo') || '/')
           }
         }}

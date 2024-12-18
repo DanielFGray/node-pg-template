@@ -21,8 +21,7 @@ export default function ForgotPassword() {
         if (!form.success) return setResponse(form.error.flatten())
         const body = new URLSearchParams(form.data)
         const res = await api<FormResult>('/forgot-password', { method: 'post', body })
-        if (!res.ok) return setResponse(res.error)
-        setResponse(res.data)
+        setResponse(res)
       }}
     >
       <fieldset>

@@ -18,9 +18,7 @@ export default function Settings() {
   const [settings, setEmail] = useState<SettingsData>()
   async function refetch() {
     const res = await api<FormResult<SettingsData>>('/settings')
-    if (res.ok && res.data?.payload) {
-      setEmail(res.data.payload)
-    }
+    setEmail(res.payload)
   }
   useEffect(() => {
     refetch()
@@ -52,9 +50,8 @@ export function ProfileSettings({ currentUser }: { currentUser: User }) {
         if (!form.success) return setResponse(form.error.flatten())
         const body = new URLSearchParams(form.data)
         const res = await api<FormResult<User>>('/me', { method: 'post', body })
-        if (!res.ok) return setResponse(res.error)
-        setResponse(res.data)
-        if (res.data.payload) auth.setUser(res.data.payload)
+        setResponse(res)
+        if (res.payload) auth.setUser(res.payload)
       }}
     >
       <fieldset>
@@ -134,8 +131,7 @@ export function PasswordSettings({
           if (!primaryEmail) throw new Error('no primary email')
           const body = new URLSearchParams([['email', primaryEmail]])
           const res = await api<FormResult>('/forgot-password', { method: 'post', body })
-          if (!res.ok) return setResponse(res.error)
-          setResponse(res.data)
+          setResponse(res)
         }}
       >
         <fieldset>
@@ -155,8 +151,7 @@ export function PasswordSettings({
         if (!form.success) return setResponse(form.error.flatten())
         const body = new URLSearchParams(form.data)
         const res = await api<FormResult>('/change-password', { method: 'post', body })
-        if (!res.ok) return setResponse(res.error)
-        setResponse(res.data)
+        setResponse(res)
         refetch()
       }}
       data-cy="settings-password-form"
@@ -311,20 +306,17 @@ function Email({
                 method: 'post',
                 body,
               })
-              if (!res.ok) return setResponse(res.error)
-              setResponse(res.data)
+              setResponse(res)
               return refetch()
             }
             case 'deleteEmail': {
               const res = await api<FormResult>('/settings/email', { method: 'delete', body })
-              if (!res.ok) return setResponse(res.error)
-              setResponse(res.data)
+              setResponse(res)
               return refetch()
             }
             case 'makePrimary': {
               const res = await api<FormResult>('/make-email-primary', { method: 'post', body })
-              if (!res.ok) return setResponse(res.error)
-              setResponse(res.data)
+              setResponse(res)
               return refetch()
             }
           }
@@ -400,8 +392,7 @@ function AddEmailForm({ refetch }: { refetch: () => void }) {
         if (!form.success) return setResponse(form.error.flatten())
         const body = new URLSearchParams(form.data)
         const res = await api<FormResult>('/settings/email', { method: 'post', body })
-        if (!res.ok) return setResponse(res.error)
-        setResponse(res.data)
+        setResponse(res)
         refetch()
         ev.target.reset()
         setShowForm(false)
@@ -507,8 +498,8 @@ function DeleteAccount() {
             method: 'delete',
             body,
           })
-          if (!res.ok) return setResponse(res.error)
-          if (res.data.payload?.confirm_account_deletion) {
+          setResponse(res)
+          if (res.payload?.confirm_account_deletion) {
             navigate('/')
             setTimeout(() => {
               auth.setUser(null)
@@ -546,8 +537,7 @@ function DeleteAccount() {
       onSubmit={async ev => {
         ev.preventDefault()
         const res = await api<FormResult>('/me', { method: 'delete' })
-        if (!res.ok) return setResponse(res.error)
-        setResponse(res.data)
+        setResponse(res)
       }}
     >
       <fieldset>

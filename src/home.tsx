@@ -10,8 +10,7 @@ export default function Home() {
   const [posts, setPosts] = useState<FormResult<Post[]>>([])
   async function refetch() {
     const res = await api<FormResult<Post[]>>('/posts')
-    if (!res.ok) return setPosts(res.error)
-    setPosts(res.data)
+    setPosts(res)
   }
   useEffect(() => {
     refetch()
@@ -38,8 +37,7 @@ function NewPost({ refetch }: { refetch: () => void }) {
         if (!form.success) return setResponse(form.error.flatten())
         const body = new URLSearchParams(form.data)
         const res = await api<FormResult<Post[]>>('/posts', { method: 'post', body })
-        if (!res.ok) return setResponse(res.error)
-        setResponse(res.data)
+        setResponse(res)
         refetch()
       }}
     >
