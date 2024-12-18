@@ -6,6 +6,30 @@ import inquirer from 'inquirer'
 
 const DOTENV_PATH = path.resolve('.env')
 
+const packageJson = JSON.parse(await fs.readFile('./package.json', 'utf8'))
+const packageName = (packageJson?.name || import.meta.dirname.split('/').at(-1))
+  .replace(/\W/g, '_')
+  .replace(/__+/g, '')
+  .replace(/^_/, '')
+
+const NOCONFIRM = Boolean(process.env.NOCONFIRM)
+const defaults = {
+  ROOT_DATABASE_USER: 'postgres',
+  DATABASE_PORT: '5432',
+  DATABASE_HOST: 'localhost',
+  DATABASE_NAME: packageName,
+  DATABASE_OWNER: packageName,
+  DATABASE_VISITOR: `${packageName}_visitor`,
+  DATABASE_AUTHENTICATOR: `${packageName}_authenticator`,
+  PORT: '3000',
+  VITE_ROOT_URL: 'http://localhost:5173',
+  ROOT_DATABASE_PASSWORD: generatePassword(18),
+  DATABASE_OWNER_PASSWORD: generatePassword(18),
+  DATABASE_AUTHENTICATOR_PASSWORD: generatePassword(18),
+  SHADOW_DATABASE_PASSWORD: generatePassword(18),
+  SECRET: generatePassword(32),
+}
+
 /** validates database name
  * @param {string} str database name
  * @returns {true | string} returns true or an error
@@ -138,65 +162,49 @@ async function createConfig(config) {
         prefix: '',
       },
     ],
-    Object.assign({}, config, process.env),
+    Object.assign({}, config, NOCONFIRM ? defaults : {}, process.env),
   )
 
-  let PASSWORDS = {
-    ROOT_DATABASE_PASSWORD: config?.ROOT_DATABASE_PASSWORD,
-    DATABASE_OWNER_PASSWORD: config?.DATABASE_OWNER_PASSWORD,
-    DATABASE_AUTHENTICATOR_PASSWORD: config?.DATABASE_AUTHENTICATOR_PASSWORD,
-    SHADOW_DATABASE_PASSWORD: config?.SHADOW_DATABASE_PASSWORD,
-    SECRET: config?.SECRET,
-  }
-
-  if (!Object.values(PASSWORDS).every(Boolean)) {
-    PASSWORDS = (
-      await inquirer.prompt({
-        name: 'genpwd',
-        message: 'auto-generate passwords?',
-        type: 'confirm',
+  const { genpwd } = await inquirer.prompt(
+    {
+      name: 'genpwd',
+      message: 'auto-generate passwords?',
+      type: 'confirm',
+      prefix: '',
+    },
+    NOCONFIRM ? { genpwd: NOCONFIRM } : {},
+  )
+  const PASSWORDS = await inquirer.prompt(
+    [
+      {
+        name: 'ROOT_DATABASE_PASSWORD',
+        default: () => generatePassword(18),
         prefix: '',
-      })
-    ).genpwd
-      ? {
-          ROOT_DATABASE_PASSWORD: config?.ROOT_DATABASE_PASSWORD ?? generatePassword(18),
-          DATABASE_OWNER_PASSWORD: config?.DATABASE_OWNER_PASSWORD ?? generatePassword(18),
-          DATABASE_AUTHENTICATOR_PASSWORD:
-            config?.DATABASE_AUTHENTICATOR_PASSWORD ?? generatePassword(18),
-          SHADOW_DATABASE_PASSWORD: config?.SHADOW_DATABASE_PASSWORD ?? generatePassword(18),
-          SECRET: config?.SECRET ?? generatePassword(32),
-        }
-      : await inquirer.prompt(
-          [
-            {
-              name: 'ROOT_DATABASE_PASSWORD',
-              default: () => generatePassword(18),
-              prefix: '',
-            },
-            {
-              name: 'DATABASE_OWNER_PASSWORD',
-              default: () => generatePassword(18),
-              prefix: '',
-            },
-            {
-              name: 'DATABASE_AUTHENTICATOR_PASSWORD',
-              default: () => generatePassword(18),
-              prefix: '',
-            },
-            {
-              name: 'SHADOW_DATABASE_PASSWORD',
-              default: () => generatePassword(18),
-              prefix: '',
-            },
-            {
-              name: 'SECRET (used for signing tokens)',
-              default: () => generatePassword(32),
-              prefix: '',
-            },
-          ],
-          PASSWORDS,
-        )
-  }
+      },
+      {
+        name: 'DATABASE_OWNER_PASSWORD',
+        default: () => generatePassword(18),
+        prefix: '',
+      },
+      {
+        name: 'DATABASE_AUTHENTICATOR_PASSWORD',
+        default: () => generatePassword(18),
+        prefix: '',
+      },
+      {
+        name: 'SHADOW_DATABASE_PASSWORD',
+        default: () => generatePassword(18),
+        prefix: '',
+      },
+      {
+        name: 'SECRET',
+        message: 'SECRET (used for signing tokens)',
+        default: () => generatePassword(32),
+        prefix: '',
+      },
+    ].map(spec => ({ ...spec, message: spec.message ?? spec.name })),
+    Object.assign({}, config, genpwd || NOCONFIRM ? defaults : {}, process.env),
+  )
 
   const envFile = Object.entries({
     ...config,
