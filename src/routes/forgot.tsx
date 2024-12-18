@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { api } from './api.js'
-import type { FormResult } from './types.js'
-import { forgotPassword as validator } from './schemas.js'
+import { api } from '#app/api.js'
+import type { FormResult } from '#app/types.js'
+import { forgotPassword as validator } from '#app/schemas.js'
 
 export default function ForgotPassword() {
   const [response, setResponse] = useState<FormResult>()

@@ -1,13 +1,13 @@
 import { Routes, Route, useLocation, Navigate, Outlet, NavLink } from 'react-router'
 import { useAuth } from './Auth.ctx.js'
-import Login from './login.js'
-import Logout from './logout.js'
-import Register from './register.js'
-import Settings from './settings.js'
-import Verify from './verify.js'
-import Forgot from './forgot.js'
-import Home from './home.js'
-import ResetPass from './reset.js'
+import Login from './routes/login.js'
+import Logout from './routes/logout.js'
+import Register from './routes/register.js'
+import Settings from './routes/settings.js'
+import Verify from './routes/verify.js'
+import Forgot from './routes/forgot.js'
+import Home from './routes/home.js'
+import ResetPass from './routes/reset.js'
 
 function Layout({ children }: { children: React.ReactNode }) {
   const { user } = useAuth()

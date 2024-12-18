@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
-import { useAuth } from './Auth.ctx.js'
-import type { FormResult, User } from './types.js'
-import { api } from './api.js'
-import { SocialLogin } from './components.js'
-import { register as validator } from './schemas.js'
+import { useAuth } from '#app/Auth.ctx.js'
+import type { FormResult, User } from '#app/types.js'
+import { api } from '#app/api.js'
+import { SocialLogin } from '#app/components.js'
+import { register as validator } from '#app/schemas.js'
 
 export default function Register() {
   const [response, setResponse] = useState<FormResult>()

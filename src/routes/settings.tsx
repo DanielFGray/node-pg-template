@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
-import { useAuth } from './Auth.ctx.js'
-import type { FormResult, User, UserAuthentication, UserEmail } from './types.js'
-import { api } from './api.js'
+import { useAuth } from '#app/Auth.ctx.js'
+import type { FormResult, User, UserAuthentication, UserEmail } from '#app/types.js'
+import { api } from '#app/api.js'
 import { useNavigate, useSearchParams } from 'react-router'
-import { SocialLogin, Spinner, FormErrors, UnverifiedAccountWarning } from './components.js'
-import * as schemas from './schemas.js'
+import { SocialLogin, Spinner, FormErrors, UnverifiedAccountWarning } from '#app/components.js'
+import * as schemas from '#app/schemas.js'
 
 type SettingsData = {
   emails: UserEmail[]

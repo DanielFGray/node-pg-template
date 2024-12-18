@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router'
-import { useAuth } from './Auth.ctx.js'
-import { api } from './api.js'
+import { useAuth } from '#app/Auth.ctx.js'
+import { api } from '#app/api.js'
 
 export default function Logout() {
   const navigate = useNavigate()

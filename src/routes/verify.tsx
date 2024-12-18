@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
-import type { FormResult } from './types.js'
-import { api } from './api.js'
 import { useSearchParams } from 'react-router'
-import { FormErrors } from './components.js'
+import type { FormResult } from '#app/types.js'
+import { api } from '#app/api.js'
+import { FormErrors } from '#app/components.js'
 
 export default function Verify() {
   const [params] = useSearchParams()

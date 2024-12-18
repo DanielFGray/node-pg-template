@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import { api } from './api.js'
-import type { FormResult, User } from './types.js'
+import { api } from '#app/api.js'
+import type { FormResult, User } from '#app/types.js'
 import { useNavigate, useSearchParams } from 'react-router'
-import { useAuth } from './Auth.ctx.js'
-import { resetPassword as validator } from './schemas.js'
-import { FormErrors } from './components.js'
+import { useAuth } from '#app/Auth.ctx.js'
+import { resetPassword as validator } from '#app/schemas.js'
+import { FormErrors } from '#app/components.js'
 
 export default function ResetPass() {
   const navigate = useNavigate()

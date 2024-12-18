@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
-import { api } from './api.js'
-import { useAuth } from './Auth.ctx.js'
-import { FormErrors, Spinner, UnverifiedAccountWarning } from './components.js'
-import type { FormResult, Post } from './types.js'
-import { createPost as validator } from './schemas.js'
+import { api } from '#app/api.js'
+import { useAuth } from '#app/Auth.ctx.js'
+import { FormErrors, Spinner, UnverifiedAccountWarning } from '#app/components.js'
+import type { FormResult, Post } from '#app/types.js'
+import { createPost as validator } from '#app/schemas.js'
 
 export default function Home() {
   const auth = useAuth()
