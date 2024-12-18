@@ -75,9 +75,10 @@ export const app = express()
   })
 
   .post('/posts', async (req, res) => {
+    const body = schemas.createPost.safeParse(req.body)
+    if (!body.success) return res.status(400).json(body.error.flatten() satisfies FormResult)
+    const { body: postBody, privacy } = body.data
     withAuthContext(req, async tx => {
-      const body = schemas.createPost.safeParse(req.body)
-      if (!body.success) return res.status(400).json(body.error.flatten() satisfies FormResult)
       try {
         const post = await tx
           .insertInto('app_public.posts')
