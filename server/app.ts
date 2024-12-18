@@ -82,7 +82,7 @@ export const app = express()
       try {
         const post = await tx
           .insertInto('app_public.posts')
-          .values(body.data)
+          .values({ body: postBody, privacy: privacy ?? sql`default` })
           .returningAll()
           .executeTakeFirstOrThrow()
         res.json({ payload: post } satisfies FormResult)
