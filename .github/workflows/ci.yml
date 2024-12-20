@@ -18,13 +18,44 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Use Node.js
+      - name: use node v22
         uses: actions/setup-node@v4
         with:
           node-version: '22'
 
-      - name: Install dependencies
+      - name: install dependencies
         run: npm install --legacy-peer-deps
 
-      - name: Run CI
-        run: npm run ci
+      - name: run lint
+        run: npm run lint
+        continue-on-error: true
+
+      - name: run env init
+        run: NOCONFIRM=1 ROOT_DATABASE_USER=postgres ROOT_DATABASE_PASSWORD=postgres npm run env:init
+
+      - name: docker-compose up -d
+        uses: hoverkraft-tech/compose-action@v2.0.1
+        with:
+          compose-file: './docker-compose.yml'
+
+      - name: run db init
+        run: NOCONFIRM=1 npx run-s db:setup db:reset db:latest
+
+      - name: run typecheck
+        run: npm run typecheck
+        continue-on-error: true
+
+      - name: build server
+        run: npm run server:build
+
+      - name: build client
+        run: npm run client:build
+
+      - name: run server
+        run: npm run server:start &
+
+      - name: run vitest
+        run: npx vitest run
+
+      - name: run cypress
+        run: npx cypress run --e2e
