@@ -9,7 +9,7 @@ import { randomNumber } from '#lib/index.js'
 import { setTimeout } from 'node:timers/promises'
 import { env } from './assertEnv.js'
 import { z } from 'zod'
-import { GitHub, OAuth2RequestError, generateState } from 'arctic'
+import { GitHub, OAuth2RequestError, OAuth2Tokens, generateState } from 'arctic'
 import { parseCookies, serializeCookie } from 'oslo/cookie'
 import log from './log.js'
 import * as schemas from '#app/schemas.js'
@@ -573,56 +573,28 @@ export const app = express()
 if (!(env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET)) {
   log.info('GitHub OAuth is not configured')
 } else {
-  const providerSpec = z.enum(['github'])
-
-  const oauthProviders = {
-    github: new GitHub(
-      env.GITHUB_CLIENT_ID,
-      env.GITHUB_CLIENT_SECRET,
-      `${rootUrl}/auth/github/callback`,
-    ),
-  } satisfies Record<z.infer<typeof providerSpec>, unknown>
-
-  app.get('/auth/:provider', (req, res) => {
-    const params = z.object({ provider: providerSpec }).safeParse({ provider: req.params.provider })
-    if (!params.success) return res.status(400).json(params.error.flatten() satisfies FormResult)
-    const provider = oauthProviders[params.data.provider]
-    const state = generateState()
-    const url = provider.createAuthorizationURL(state, ['user:email'])
-    const redir = req.query.redirectTo?.toString()
-    if (redir?.startsWith('/')) req.session.redirectTo = redir
-    res
-      .appendHeader(
-        'Set-Cookie',
-        serializeCookie('github_oauth_state', state, {
-          path: '/',
-          secure: env.NODE_ENV === 'production',
-          httpOnly: true,
-          maxAge: 60 * 10,
-          sameSite: 'lax',
-        }),
-      )
-      .redirect(url.toString())
-  })
-
-  app.get('/auth/:provider/callback', async (req, res) => {
-    const params = providerSpec.safeParse(req.params.provider)
-    if (!params.success) return res.status(400).json(params.error.flatten() satisfies FormResult)
-    const code = req.query.code?.toString() ?? null
-    const state = req.query.state?.toString() ?? null
-    const storedState = parseCookies(req.headers.cookie ?? '').get('github_oauth_state') ?? null
-    if (!code || !state || !storedState || state !== storedState) return res.status(400).end()
-    try {
-      const tokens = await oauthProviders.github.validateAuthorizationCode(code)
+  const provider = new GitHub(
+    env.GITHUB_CLIENT_ID,
+    env.GITHUB_CLIENT_SECRET,
+    `${rootUrl}/auth/github/callback`,
+  )
+  installOauthProvider({
+    serviceName: 'github',
+    preRequestHook({ state }) {
+      const url = provider.createAuthorizationURL(state, ['user:email'])
+      return { url }
+    },
+    async postRequestHook({ code }) {
+      const tokens = await provider.validateAuthorizationCode(code)
       const {
-        data: { viewer: githubUser },
+        data: { viewer: profile },
       } = z
         .object({
           data: z.object({
             viewer: z.object({
-              email: z.string(),
+              email: z.string().email(),
               username: z.string(),
-              name: z.string(),
+              name: z.string().optional(),
               avatar_url: z.string(),
             }),
           }),
@@ -641,6 +613,48 @@ if (!(env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET)) {
             })
           ).json(),
         )
+      return { tokens, identifier: profile.username, profile }
+    },
+  })
+}
+
+function installOauthProvider({
+  serviceName,
+  preRequestHook,
+  postRequestHook,
+}: {
+  serviceName: string
+  preRequestHook(a: { state: string }): { url: URL }
+  postRequestHook(a: {
+    code: string
+  }): Promise<{ tokens: OAuth2Tokens; identifier: string; profile: any }>
+}) {
+  app.get(`/auth/${serviceName}`, (req, res) => {
+    const state = generateState()
+    const { url } = preRequestHook({ state })
+    const redir = req.query.redirectTo?.toString()
+    if (redir?.startsWith('/')) req.session.redirectTo = redir
+    res
+      .appendHeader(
+        'Set-Cookie',
+        serializeCookie('github_oauth_state', state, {
+          path: '/',
+          secure: env.NODE_ENV === 'production',
+          httpOnly: true,
+          maxAge: 60 * 10,
+          sameSite: 'lax',
+        }),
+      )
+      .redirect(url.toString())
+  })
+
+  app.get(`/auth/${serviceName}/callback`, async (req, res) => {
+    const code = req.query.code?.toString() ?? null
+    const state = req.query.state?.toString() ?? null
+    const storedState = parseCookies(req.headers.cookie ?? '').get('github_oauth_state') ?? null
+    if (!code || !state || !storedState || state !== storedState) return res.status(400).end()
+    try {
+      const { tokens, identifier, profile } = await postRequestHook({ code })
       const session = await rootDb
         .with('create_user', db =>
           db
@@ -648,9 +662,9 @@ if (!(env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET)) {
               rootDb
                 .fn<User>('app_private.link_or_register_user', [
                   sql`f_user_id => ${req.session.user?.user_id ?? null}`,
-                  sql`f_service => ${params.data}`,
-                  sql`f_identifier => ${githubUser.username}`,
-                  sql`f_profile => ${JSON.stringify(githubUser)}`,
+                  sql`f_service => ${serviceName}`,
+                  sql`f_identifier => ${identifier}`,
+                  sql`f_profile => ${JSON.stringify(profile)}`,
                   sql`f_auth_details => ${JSON.stringify(tokens)}`,
                 ])
                 .as('u'),
