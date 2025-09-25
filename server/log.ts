@@ -2,7 +2,7 @@ import Debug from 'debug'
 
 const appDebug = Debug('app')
 const dbDebug = Debug('db')
-const log = {
+export const log = {
   info: appDebug.extend('info'),
   debug: appDebug.extend('debug'),
   error: appDebug.extend('error'),
@@ -11,5 +11,3 @@ const log = {
     result: dbDebug.extend('result'),
   },
 }
-
-export default log

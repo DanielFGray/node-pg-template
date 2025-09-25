@@ -11,7 +11,7 @@ import { env } from './assertEnv.js'
 import { z } from 'zod'
 import { GitHub, OAuth2RequestError, OAuth2Tokens, generateState } from 'arctic'
 import { parseCookies, serializeCookie } from 'oslo/cookie'
-import log from './log.js'
+import { log } from './log.js'
 import * as schemas from '#app/schemas.js'
 
 declare module 'express-session' {

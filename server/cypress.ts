@@ -1,6 +1,6 @@
 import type { Express, Request, RequestHandler, Response } from 'express'
 import { rootPool } from './db.js'
-import log from './log.js'
+import { log } from './log.js'
 
 export function installCypressCommands(app: Express) {
   if (process.env.NODE_ENV === 'production') {

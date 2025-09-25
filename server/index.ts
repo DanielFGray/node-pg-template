@@ -1,6 +1,6 @@
 import http from 'node:http'
 import { app } from './app.js'
-import log from './log.js'
+import { log } from './log.js'
 import { env } from './assertEnv.js'
 
 if (process.env.NODE_ENV !== 'production') {

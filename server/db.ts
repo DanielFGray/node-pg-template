@@ -2,7 +2,7 @@ import type express from 'express'
 import { Kysely, PostgresDialect, sql, type Transaction } from 'kysely'
 import type { DB } from 'kysely-codegen'
 import pg from 'pg'
-import logger from './log.js'
+import { log } from './log.js'
 import { env } from './assertEnv.js'
 
 /** bigint */
@@ -17,15 +17,15 @@ export const authPool = new pg.Pool({ connectionString: env.AUTH_DATABASE_URL })
 export const rootDb = new Kysely<DB>({
   dialect: new PostgresDialect({ pool: rootPool }),
   log(event) {
-    logger.db.query(event.query.sql)
-    if (event.level === 'error') logger.db.result(event.query.parameters)
+    log.db.query(event.query.sql)
+    if (event.level === 'error') log.db.result(event.query.parameters)
   },
 })
 
 export const authDb = new Kysely<DB>({
   dialect: new PostgresDialect({ pool: authPool }),
   log(event) {
-    logger.db.query(event.query.sql)
+    log.db.query(event.query.sql)
   },
 })
 
