@@ -21,7 +21,7 @@ context('Subscriptions', () => {
     // cy.getCy('nav-login').should('not.exist') // No login button on login page
 
     // Action
-    cy.getCy('login-username-input').type(testuser.username)
+    cy.getCy('login-id-input').type(testuser.username)
     cy.getCy('login-password-input').type(testuser.password)
     cy.getCy('login-submit-button').click()
 
@@ -55,7 +55,7 @@ context('Subscriptions', () => {
     cy.getCy('register-username-input').type(testuser.username)
     cy.getCy('register-email-input').type(testuser.email)
     cy.getCy('register-password-input').type(testuser.password)
-    cy.getCy('register-confirm-password-input').type(testuser.password)
+    cy.getCy('register-confirmPassword-input').type(testuser.password)
     cy.getCy('register-submit-button').click()
 
     // Assertions

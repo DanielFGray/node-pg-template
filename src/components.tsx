@@ -1,20 +1,73 @@
+import React from 'react'
 import type { FormResult } from './types.js'
 
-export function UnverifiedAccountWarning() {
+const FormContext = React.createContext<{
+  prefix: string
+  response?: FormResult<unknown>
+}>({ prefix: '' })
+
+export function Form<T extends undefined | FormResult<unknown>>({
+  prefix,
+  response,
+  children,
+  ...props
+}: {
+  prefix: string
+  response: T
+} & React.ComponentPropsWithoutRef<'form'>) {
   return (
-    <small data-cy="unverified-account-warning">
-      You do not have any verified email addresses, this will make account recovery impossible and
-      may limit your available functionality within this application. Please complete email
-      verification.
-    </small>
+    <FormContext.Provider value={{ prefix, response }}>
+      <form {...props}>{children}</form>
+    </FormContext.Provider>
   )
 }
 
-export function Spinner() {
-  return <>loading...</>
+Form.Row = function FormRow(
+  props: (
+    | {
+        name: string
+        label?: string | null
+        children: React.ReactNode
+      }
+    | {
+        name: string
+        label?: string | null
+        type: HTMLInputElement['type'] | 'textarea'
+      }
+  ) &
+    Omit<React.ComponentPropsWithoutRef<'input'>, 'type' | 'name'>,
+) {
+  const { prefix, response } = React.useContext(FormContext)
+
+  return (
+    <div className="form-row">
+      {props.label === null ? null : (
+        <label htmlFor={`${prefix}-${props.name}-input`} data-cy={`${prefix}-${props.name}-label`}>
+          {props.label || props.name}:
+        </label>
+      )}
+      {'children' in props
+        ? props.children
+        : React.createElement(props.type === 'textarea' ? 'textarea' : 'input', {
+            ...props,
+            type: props.type === 'textarea' ? undefined : props.type,
+            name: props.name,
+            id: `${prefix}-${props.name}-input`,
+            'aria-describedby': `${prefix}-${props.name}-help`,
+            'aria-invalid': Boolean(response?.fieldErrors?.[props.name]),
+            'data-cy': `${prefix}-${props.name}-input`,
+          })}
+      {response?.fieldErrors?.[props.name]?.map(e => (
+        <div className="field-error" key={e} id={`${prefix}-${props.name}-help`}>
+          {e}
+        </div>
+      ))}
+    </div>
+  )
 }
 
-export function FormErrors({ response }: { response: FormResult | undefined }) {
+Form.Errors = function FormErrors() {
+  const { response } = React.useContext(FormContext)
   return (
     <>
       {response?.formMessages?.map(e => (
@@ -29,6 +82,20 @@ export function FormErrors({ response }: { response: FormResult | undefined }) {
       ))}
     </>
   )
+}
+
+export function UnverifiedAccountWarning() {
+  return (
+    <small data-cy="unverified-account-warning">
+      You do not have any verified email addresses, this will make account recovery impossible and
+      may limit your available functionality within this application. Please complete email
+      verification.
+    </small>
+  )
+}
+
+export function Spinner() {
+  return <>loading...</>
 }
 
 const SocialLoginServices = ['GitHub']

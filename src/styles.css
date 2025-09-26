@@ -38,6 +38,10 @@ ul {
   justify-content: space-between;
 }
 
+.w-full {
+  width: 100%;
+}
+
 .p-2 {
   padding: 0.5rem;
 }

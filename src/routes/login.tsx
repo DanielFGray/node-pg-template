@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router'
 import { useAuth } from '#app/Auth.ctx.js'
 import type { FormResult, User } from '#app/types.js'
 import { api } from '#app/api.js'
-import { SocialLogin } from '#app/components.js'
+import { Form, SocialLogin } from '#app/components.js'
 import { login as validator } from '#app/schemas.js'
 
 export default function Login() {
@@ -17,7 +17,9 @@ export default function Login() {
   }
   return (
     <>
-      <form
+      <Form
+        prefix="login"
+        response={response}
         onSubmit={async ev => {
           ev.preventDefault()
           const form = validator.safeParse(Object.fromEntries(new FormData(ev.currentTarget)))
@@ -36,44 +38,8 @@ export default function Login() {
           {params.get('redirectTo') && (
             <div className="field-error">you must be logged in to do that!</div>
           )}
-          <div className="form-row">
-            <label htmlFor="login-username-input" data-cy="login-username-label">
-              username:
-            </label>
-            <input
-              type="text"
-              name="id"
-              id="login-username-input"
-              aria-describedby="login-username-help"
-              aria-invalid={Boolean(response?.fieldErrors?.username)}
-              data-cy="login-username-input"
-            />
-            {response?.fieldErrors?.username?.map(e => (
-              <div className="field-error" key={e} id="login-username-help">
-                {e}
-              </div>
-            ))}
-          </div>
-
-          <div className="form-row">
-            <label htmlFor="login-password-input" data-cy="login-password-label">
-              password:
-            </label>
-            <input
-              type="password"
-              name="password"
-              id="login-password-input"
-              aria-describedby="login-password-help"
-              aria-invalid={Boolean(response?.fieldErrors?.password)}
-              data-cy="login-password-input"
-            />
-            {response?.fieldErrors?.password?.map(e => (
-              <div className="field-error" key={e} id="login-password-help">
-                {e}
-              </div>
-            ))}
-          </div>
-
+          <Form.Row type="text" label="username or email" name="id" />
+          <Form.Row type="password" name="password" />
           <div>
             {response?.formErrors?.map(e => (
               <div className="field-error" key={e}>
@@ -93,8 +59,7 @@ export default function Login() {
             )}
           </div>
         </fieldset>
-      </form>
-
+      </Form>
       <div className="text-center">
         <div>
           <em>or</em>

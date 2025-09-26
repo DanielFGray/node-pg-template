@@ -9,8 +9,8 @@ context('Post creation', () => {
     cy.login({ redirectTo: '/', verified: true })
 
     // Action
-    cy.getCy('new-post-input').type(postText)
-    cy.getCy('new-post-submit').click()
+    cy.getCy('newpost-body-input').type(postText)
+    cy.getCy('newpost-submit-button').click()
 
     // Assertion
     cy.contains(postText).should('exist')

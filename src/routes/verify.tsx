@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import type { FormResult } from '#app/types.js'
 import { api } from '#app/api.js'
-import { FormErrors } from '#app/components.js'
+import { Form } from '#app/components.js'
 
 export default function Verify() {
   const [params] = useSearchParams()
@@ -27,11 +27,11 @@ export default function Verify() {
   }, [id, token])
 
   return (
-    <div className="items-center p-4">
+    <Form prefix="verify" response={response} className="items-center p-4">
       {response.payload?.verify_email && (
         <div data-cy="email-verified">Thank you for verifying your email address.</div>
       )}
-      <FormErrors response={response} />
-    </div>
+      <Form.Errors />
+    </Form>
   )
 }

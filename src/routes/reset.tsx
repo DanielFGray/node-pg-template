@@ -4,7 +4,7 @@ import type { FormResult, User } from '#app/types.js'
 import { useNavigate, useSearchParams } from 'react-router'
 import { useAuth } from '#app/Auth.ctx.js'
 import { resetPassword as validator } from '#app/schemas.js'
-import { FormErrors } from '#app/components.js'
+import { Form } from '#app/components.js'
 
 export default function ResetPass() {
   const navigate = useNavigate()
@@ -16,7 +16,9 @@ export default function ResetPass() {
 
   return (
     <div>
-      <form
+      <Form
+        prefix="reset"
+        response={response}
         onSubmit={async ev => {
           ev.preventDefault()
           const form = validator.safeParse(Object.fromEntries(new FormData(ev.currentTarget)))
@@ -38,86 +40,35 @@ export default function ResetPass() {
           {userId ? (
             <input name="userId" type="hidden" value={userId} />
           ) : (
-            <div className="form-row">
-              <label htmlFor="reset-userId-input">Enter your user id:</label>
-              <input
-                type="input"
-                name="userId"
-                id="reset-userId-input"
-                aria-describedby="reset-userId-help"
-                aria-invalid={Boolean(response?.fieldErrors?.password)}
-              />
-              {response?.fieldErrors?.password?.map(e => (
-                <div className="field-error" key={e} id="reset-userId-help">
-                  {e}
-                </div>
-              ))}
-            </div>
+            <Form.Row name="userId" type="text" label="Enter your user id" />
           )}
           {token ? (
             <input name="token" type="hidden" value={token} />
           ) : (
-            <div className="form-row">
-              <label htmlFor="reset-token-input">Enter your reset token:</label>
-              <input
-                type="input"
-                name="token"
-                id="reset-token-input"
-                aria-describedby="reset-token-help"
-                aria-invalid={Boolean(response?.fieldErrors?.password)}
-                data-cy="reset-token-input"
-              />
-              {response?.fieldErrors?.password?.map(e => (
-                <div className="field-error" key={e} id="reset-token-help">
-                  {e}
-                </div>
-              ))}
-            </div>
+            <Form.Row name="token" type="text" label="Enter your reset token" />
           )}
-          <div className="form-row">
-            <label htmlFor="reset-password-input">new password:</label>
-            <input
-              type="password"
-              name="password"
-              id="reset-password-input"
-              autoComplete="new-password"
-              aria-describedby="reset-password-help"
-              aria-invalid={Boolean(response?.fieldErrors?.password)}
-              data-cy="reset-password-input"
-            />
-            {response?.fieldErrors?.password?.map(e => (
-              <div className="field-error" key={e} id="reset-password-help">
-                {e}
-              </div>
-            ))}
-          </div>
+          <Form.Row
+            name="password"
+            type="password"
+            label="new password"
+            autoComplete="new-password"
+          />
 
-          <div className="form-row">
-            <label htmlFor="reset-confirm-password-input">confirm password:</label>
-            <input
-              type="password"
-              name="confirmPassword"
-              id="reset-confirm-password-input"
-              autoComplete="new-password"
-              aria-describedby="reset-confirm-password-help"
-              aria-invalid={Boolean(response?.fieldErrors?.confirmPassword)}
-              data-cy="reset-confirm-password-input"
-            />
-            {response?.fieldErrors?.confirmPassword?.map(e => (
-              <div className="field-error" key={e} id="reset-confirm-password-help">
-                {e}
-              </div>
-            ))}
-          </div>
+          <Form.Row
+            name="confirmPassword"
+            type="password"
+            label="confirm password"
+            autoComplete="new-password"
+          />
 
           <div>
-            <FormErrors response={response} />
+            <Form.Errors />
             <button type="submit" data-cy="reset-submit-button">
               reset password
             </button>
           </div>
         </fieldset>
-      </form>
+      </Form>
     </div>
   )
 }

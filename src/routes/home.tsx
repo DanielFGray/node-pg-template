@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '#app/api.js'
 import { useAuth } from '#app/Auth.ctx.js'
-import { FormErrors, Spinner, UnverifiedAccountWarning } from '#app/components.js'
+import { Form, Spinner, UnverifiedAccountWarning } from '#app/components.js'
 import type { FormResult, Post } from '#app/types.js'
 import { createPost as validator } from '#app/schemas.js'
 
@@ -30,7 +30,9 @@ export default function Home() {
 function NewPost({ refetch }: { refetch: () => void }) {
   const [response, setResponse] = useState<FormResult<Post[]>>()
   return (
-    <form
+    <Form
+      prefix="newpost"
+      response={response}
       onSubmit={async ev => {
         ev.preventDefault()
         const form = validator.safeParse(Object.fromEntries(new FormData(ev.currentTarget)))
@@ -46,33 +48,39 @@ function NewPost({ refetch }: { refetch: () => void }) {
         <div>
           <textarea
             name="body"
-            aria-describedby="new-post-help"
+            aria-describedby="newpost-body-help"
             aria-invalid={Boolean(response?.fieldErrors?.body)}
-            style={{ width: '100%' }}
-            data-cy="new-post-input"
-          ></textarea>
+            className="w-full"
+            data-cy="newpost-body-input"
+            placeholder="what's on your mind?"
+          />
           {response?.fieldErrors?.body?.map(e => (
-            <div className="field-error" key={e} id="new-post-help">
+            <div className="field-error" key={e} id="newpost-body-help">
               {e}
             </div>
           ))}
         </div>
 
         <div className="form-row">
-          <label htmlFor="new-post-privacy-input">privacy: </label>
+          <label htmlFor="newpost-privacy-input">privacy: </label>
           <div>
-            <select name="privacy" id="new-post-privacy-input" data-cy="new-post-privacy-input">
+            <select
+              className="w-full"
+              name="privacy"
+              id="newpost-privacy-input"
+              data-cy="newpost-privacy-input"
+            >
               <option value="public">public</option>
               <option value="private">private</option>
             </select>
           </div>
         </div>
 
-        <button type="submit" data-cy="new-post-submit">
+        <button type="submit" data-cy="newpost-submit-button">
           send
         </button>
-        <FormErrors response={response} />
+        <Form.Errors />
       </fieldset>
-    </form>
+    </Form>
   )
 }

@@ -38,7 +38,7 @@ context('RegisterAccount', () => {
       // Action
       cy.getCy('register-username-input').type('testuser')
       cy.getCy('register-password-input').type('Really Good Password')
-      cy.getCy('register-confirm-password-input').type('Really Good Password')
+      cy.getCy('register-confirmPassword-input').type('Really Good Password')
       cy.getCy('register-submit-button').click()
 
       // Assertions
@@ -56,7 +56,7 @@ context('RegisterAccount', () => {
       cy.getCy('register-username-input').type('testuser')
       cy.getCy('register-email-input').type('test.user@example.com')
       cy.getCy('register-password-input').type('Really Good Password')
-      cy.getCy('register-confirm-password-input').type('Really Good Password')
+      cy.getCy('register-confirmPassword-input').type('Really Good Password')
       cy.getCy('register-submit-button').click()
 
       // Assertions

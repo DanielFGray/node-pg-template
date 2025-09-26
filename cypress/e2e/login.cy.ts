@@ -16,7 +16,7 @@ context('Login', () => {
     cy.visit(Cypress.env('VITE_ROOT_URL') + '/login')
 
     // Action
-    cy.getCy('login-username-input').type('testuser')
+    cy.getCy('login-id-input').type('testuser')
     cy.getCy('login-password-input').type(PASSWORD)
     cy.getCy('login-submit-button').click()
 
@@ -37,7 +37,7 @@ context('Login', () => {
     cy.getCy('login-submit-button').click()
 
     // Action
-    cy.getCy('login-username-input').type('testuser')
+    cy.getCy('login-id-input').type('testuser')
     cy.getCy('login-password-input').type(PASSWORD + '!')
     cy.getCy('login-submit-button').click()
 

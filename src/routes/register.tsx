@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router'
 import { useAuth } from '#app/Auth.ctx.js'
 import type { FormResult, User } from '#app/types.js'
 import { api } from '#app/api.js'
-import { SocialLogin } from '#app/components.js'
+import { Form, SocialLogin } from '#app/components.js'
 import { register as validator } from '#app/schemas.js'
 
 export default function Register() {
@@ -17,14 +17,16 @@ export default function Register() {
   }
   return (
     <>
-      <form
+      <Form
+        prefix="register"
+        response={response}
         onSubmit={async ev => {
           ev.preventDefault()
           const form = validator.safeParse(Object.fromEntries(new FormData(ev.currentTarget)))
           if (!form.success) return setResponse(form.error.flatten())
           const body = new URLSearchParams(form.data)
-          const { data, error } = await api<FormResult<User>>('/register', { method: 'post', body })
-          if (error) return setResponse(error)
+          const { data } = await api<FormResult<User>>('/register', { method: 'post', body })
+          setResponse(data)
           if (data.payload) {
             navigate(params.get('redirectTo') || '/')
             auth.setUser(data.payload)
@@ -34,88 +36,15 @@ export default function Register() {
         <fieldset>
           <legend>register</legend>
 
-          <div className="form-row">
-            <label htmlFor="register-username-input" data-cy="register-username-label">
-              username:
-            </label>
-            <input
-              type="text"
-              name="username"
-              id="register-username-input"
-              autoComplete="username"
-              aria-describedby="register-username-help"
-              aria-invalid={Boolean(response?.fieldErrors?.username)}
-              data-cy="register-username-input"
-            />
-            {response?.fieldErrors?.username?.map(e => (
-              <div className="field-error" key={e} id="register-username-help">
-                {e}
-              </div>
-            ))}
-          </div>
-
-          <div className="form-row">
-            <label htmlFor="register-email-input" data-cy="register-email-label">
-              email:
-            </label>
-            <input
-              type="text"
-              name="email"
-              id="register-email-input"
-              autoComplete="email"
-              aria-describedby="register-email-help"
-              aria-invalid={Boolean(response?.fieldErrors?.email)}
-              data-cy="register-email-input"
-            />
-            {response?.fieldErrors?.email?.map(e => (
-              <div className="field-error" key={e} id="register-email-help">
-                {e}
-              </div>
-            ))}
-          </div>
-
-          <div className="form-row">
-            <label htmlFor="register-password-input" data-cy="register-password-label">
-              password:
-            </label>
-            <input
-              type="password"
-              name="password"
-              id="register-password-input"
-              autoComplete="new-password"
-              aria-describedby="register-password-help"
-              aria-invalid={Boolean(response?.fieldErrors?.password)}
-              data-cy="register-password-input"
-            />
-            {response?.fieldErrors?.password?.map(e => (
-              <div className="field-error" key={e} id="register-password-help">
-                {e}
-              </div>
-            ))}
-          </div>
-
-          <div className="form-row">
-            <label
-              htmlFor="register-confirm-password-input"
-              data-cy="register-confirm-password-label"
-            >
-              confirm password:
-            </label>
-            <input
-              type="password"
-              name="confirmPassword"
-              id="register-confirm-password-input"
-              autoComplete="new-password"
-              aria-describedby="register-confirm-password-help"
-              aria-invalid={Boolean(response?.fieldErrors?.confirmPassword)}
-              data-cy="register-confirm-password-input"
-            />
-            {response?.fieldErrors?.confirmPassword?.map(e => (
-              <div className="field-error" key={e} id="register-confirm-password-help">
-                {e}
-              </div>
-            ))}
-          </div>
+          <Form.Row name="username" type="text" />
+          <Form.Row name="email" type="text" />
+          <Form.Row name="password" type="password" autoComplete="new-password" />
+          <Form.Row
+            name="confirmPassword"
+            label="confirm password"
+            type="password"
+            autoComplete="new-password"
+          />
 
           <div>
             {response?.formErrors?.map(e => (
@@ -127,8 +56,9 @@ export default function Register() {
               register
             </button>
           </div>
+          <Form.Errors />
         </fieldset>
-      </form>
+      </Form>
 
       <div className="text-center">
         <div>

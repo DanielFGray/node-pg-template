@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { api } from '#app/api.js'
 import type { FormResult } from '#app/types.js'
 import { forgotPassword as validator } from '#app/schemas.js'
+import { Form } from '#app/components.js'
 
 export default function ForgotPassword() {
   const [response, setResponse] = useState<FormResult>()
@@ -14,7 +15,9 @@ export default function ForgotPassword() {
       </div>
     )
   return (
-    <form
+    <Form
+      response={response}
+      prefix="forgot"
       onSubmit={async ev => {
         ev.preventDefault()
         const form = validator.safeParse(Object.fromEntries(new FormData(ev.currentTarget)))
@@ -26,23 +29,7 @@ export default function ForgotPassword() {
     >
       <fieldset>
         <legend>forgot password</legend>
-        <div className="form-row">
-          <label htmlFor="register-email-input">email:</label>
-          <input
-            type="text"
-            name="email"
-            id="register-email-input"
-            autoComplete="email"
-            aria-describedby="register-email-help"
-            aria-invalid={Boolean(response?.fieldErrors?.email)}
-            data-cy="forgot-email-input"
-          />
-          {response?.fieldErrors?.email?.map(e => (
-            <div className="field-error" key={e} id="register-email-help">
-              {e}
-            </div>
-          ))}
-        </div>
+        <Form.Row name="email" type="text" autoComplete="email" />
 
         <div>
           {response?.formMessages?.map(e => (
@@ -60,6 +47,6 @@ export default function ForgotPassword() {
           </button>
         </div>
       </fieldset>
-    </form>
+    </Form>
   )
 }

@@ -29,7 +29,7 @@ context('', () => {
       cy.getCy('nav-login').click()
 
       cy.url().should('equal', Cypress.env('VITE_ROOT_URL') + `/login`)
-      cy.getCy('login-username-input').type(user.username)
+      cy.getCy('login-id-input').type(user.username)
       cy.getCy('login-password-input').type(user.password)
       cy.getCy('login-submit-button').click()
 

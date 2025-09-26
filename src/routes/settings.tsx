@@ -3,7 +3,7 @@ import { useAuth } from '#app/Auth.ctx.js'
 import type { FormResult, User, UserAuthentication, UserEmail } from '#app/types.js'
 import { api } from '#app/api.js'
 import { useNavigate, useSearchParams } from 'react-router'
-import { SocialLogin, Spinner, FormErrors, UnverifiedAccountWarning } from '#app/components.js'
+import { SocialLogin, Spinner, UnverifiedAccountWarning, Form } from '#app/components.js'
 import * as schemas from '#app/schemas.js'
 
 type SettingsData = {
@@ -40,7 +40,9 @@ export function ProfileSettings({ currentUser }: { currentUser: User }) {
   const [response, setResponse] = useState<FormResult>()
   const auth = useAuth()
   return (
-    <form
+    <Form
+      prefix="profile"
+      response={response}
       onSubmit={async ev => {
         ev.preventDefault()
         const form = schemas.updateProfile.safeParse(
@@ -55,63 +57,20 @@ export function ProfileSettings({ currentUser }: { currentUser: User }) {
     >
       <fieldset>
         <legend>profile settings</legend>
-
-        <div className="form-row">
-          <label htmlFor="settings-username-input">username:</label>
-          <input
-            type="text"
-            name="username"
-            id="settings-username-input"
-            defaultValue={currentUser.username}
-            aria-describedby="settings-username-help"
-            aria-invalid={Boolean(response?.fieldErrors?.username)}
-          />
-          {response?.fieldErrors?.username?.map(e => (
-            <div key={e} className="field-error" id="settings-username-help">
-              {e}
-            </div>
-          ))}
-        </div>
-
-        <div className="form-row">
-          <label htmlFor="settings-avatar_url-input">avatar:</label>
-          <input
-            type="text"
-            name="avatar_url"
-            id="settings-avatar_url-input"
-            defaultValue={currentUser.avatar_url ?? ''}
-            aria-describedby="settings-avatar_url-help"
-            aria-invalid={Boolean(response?.fieldErrors?.avatar_url)}
-          />
-          {response?.fieldErrors?.avatar_url?.map(e => (
-            <div key={e} className="field-error" id="settings-avatar_url-help">
-              {e}
-            </div>
-          ))}
-        </div>
-
-        <div className="form-row">
-          <label htmlFor="settings-bio-input">bio:</label>
-          <textarea
-            name="bio"
-            id="settings-bio-input"
-            defaultValue={currentUser.bio ?? ''}
-            aria-describedby="settings-bio-help"
-            aria-invalid={Boolean(response?.fieldErrors?.bio)}
-          />
-          {response?.fieldErrors?.bio?.map(e => (
-            <div key={e} className="field-error" id="settings-bio-help">
-              {e}
-            </div>
-          ))}
-        </div>
-
+        <Form.Row name="username" type="text" defaultValue={currentUser.username} />
+        <Form.Row
+          label="avatar"
+          name="avatar_url"
+          type="text"
+          defaultValue={currentUser.avatar_url ?? ''}
+        />
+        <Form.Row name="bio" type="textarea" defaultValue={currentUser.website ?? ''} />
         <div>
-          <FormErrors response={response} />
+          <Form.Errors />
           <button type="submit">update</button>
         </div>
       </fieldset>
-    </form>
+    </Form>
   )
 }
 
@@ -140,7 +99,9 @@ export function PasswordSettings({
       </form>
     )
   return (
-    <form
+    <Form
+      prefix="settings"
+      response={response}
       onSubmit={async ev => {
         ev.preventDefault()
         const form = schemas.changePassword.safeParse(
@@ -157,70 +118,38 @@ export function PasswordSettings({
       <fieldset>
         <legend>password settings</legend>
 
-        <div className="form-row">
-          <label htmlFor="settings-old-password-input">old password:</label>
-          <input
-            type="password"
-            name="oldPassword"
-            id="settings-old-password-input"
-            autoComplete="current-password"
-            minLength={6}
-            aria-describedby="settings-old-password-help"
-            aria-invalid={Boolean(response?.fieldErrors?.oldPassword)}
-            data-cy="settings-old-password-input"
-          />
-          {response?.fieldErrors?.oldPassword?.map(e => (
-            <div key={e} className="field-error" id="settings-old-password-help">
-              {e}
-            </div>
-          ))}
-        </div>
+        <Form.Row
+          label="old password"
+          type="password"
+          name="oldPassword"
+          autoComplete="current-password"
+          minLength={6}
+        />
 
-        <div className="form-row">
-          <label htmlFor="settings-new-password-input">new password:</label>
-          <input
-            type="password"
-            name="password"
-            id="settings-new-password-input"
-            minLength={6}
-            autoComplete="new-password"
-            aria-describedby="settings-new-password-help"
-            aria-invalid={Boolean(response?.fieldErrors?.newPassword)}
-            data-cy="settings-new-password-input"
-          />
-          {response?.fieldErrors?.newPassword?.map(e => (
-            <div key={e} className="field-error" id="settings-new-password-help">
-              {e}
-            </div>
-          ))}
-        </div>
+        <Form.Row
+          label="new password"
+          type="password"
+          name="password"
+          autoComplete="new-password"
+          minLength={6}
+        />
 
-        <div className="form-row">
-          <label htmlFor="settings-confirm-password-input">confirm password:</label>
-          <input
-            type="password"
-            name="confirmPassword"
-            id="settings-confirm-password-input"
-            minLength={6}
-            aria-describedby="settings-confirm-password-help"
-            aria-invalid={Boolean(response?.fieldErrors?.confirmPassword)}
-            data-cy="settings-confirm-password-input"
-          />
-          {response?.fieldErrors?.confirmPassword?.map(e => (
-            <div key={e} className="field-error" id="settings-confirm-password-help">
-              {e}
-            </div>
-          ))}
-        </div>
+        <Form.Row
+          label="confirm password"
+          type="password"
+          name="confirmPassword"
+          minLength={6}
+          autoComplete="new-password"
+        />
 
         <div>
-          <FormErrors response={response} />
+          <Form.Errors />
           <button type="submit" data-cy="settings-change-password-submit">
             update
           </button>
         </div>
       </fieldset>
-    </form>
+    </Form>
   )
 }
 
@@ -286,9 +215,10 @@ function Email({
           )}
         </span>
         <div>Added {new Date(Date.parse(email.created_at)).toLocaleString()}</div>
-        <FormErrors response={response} />
       </div>
-      <form
+      <Form
+        prefix="settings"
+        response={response}
         onSubmit={async ev => {
           ev.preventDefault()
           const form = schemas.withEmailId.safeParse(
@@ -322,6 +252,7 @@ function Email({
           }
         }}
       >
+        <Form.Errors />
         <input type="hidden" name="emailId" value={email.id} />
         {email.is_primary && (
           <span className="primary_indicator" data-cy="email-settings-indicator-primary">
@@ -353,8 +284,7 @@ function Email({
             Make primary
           </button>
         )}
-      </form>
-      <FormErrors response={response} />
+      </Form>
     </li>
   )
 }
@@ -383,8 +313,10 @@ function AddEmailForm({ refetch }: { refetch: () => void }) {
     )
   }
   return (
-    <form
-      data-cy="settings-new-email-form"
+    <Form
+      prefix="settings"
+      response={response}
+      data-cy="settings-email-form"
       onSubmit={async ev => {
         ev.preventDefault()
         const form = schemas.withEmail.safeParse(Object.fromEntries(new FormData(ev.currentTarget)))
@@ -397,31 +329,14 @@ function AddEmailForm({ refetch }: { refetch: () => void }) {
         if (!data?.formErrors && !data?.fieldErrors) setShowForm(false)
       }}
     >
-      <div className="form-row">
-        <label htmlFor="settings-new-email-input">new email:</label>
-        <input
-          type="email"
-          name="email"
-          id="settings-new-email-input"
-          minLength={6}
-          autoComplete="email"
-          aria-describedby="settings-new-email-help"
-          aria-invalid={Boolean(response?.fieldErrors?.newEmail)}
-          data-cy="settings-new-email-input"
-        />
-        {response?.fieldErrors?.newEmail?.map(e => (
-          <div key={e} className="field-error" id="settings-new-email-help">
-            {e}
-          </div>
-        ))}
-      </div>
+      <Form.Row label="new email" name="email" type="email" />
       <div>
-        <FormErrors response={response} />
-        <button type="submit" data-cy="settings-new-email-submit">
+        <Form.Errors />
+        <button type="submit" data-cy="settings-email-submit">
           add email
         </button>
       </div>
-    </form>
+    </Form>
   )
 }
 
@@ -544,7 +459,7 @@ function DeleteAccount() {
       <fieldset>
         <legend>danger zone</legend>
         <div>
-          <FormErrors response={response} />
+          <Form.Errors />
           <button name="submit" data-cy="account-delete-request-button">
             I want to delete my account
           </button>

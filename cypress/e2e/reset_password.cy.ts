@@ -40,7 +40,7 @@ context('reset password', () => {
       )
       cy.getCy('reset-token-input').type(token + '!') // wrong token
       cy.getCy('reset-password-input').type('a new password')
-      cy.getCy('reset-confirm-password-input').type('a new password')
+      cy.getCy('reset-confirmPassword-input').type('a new password')
       cy.getCy('reset-submit-button').click()
 
       // Assertion
