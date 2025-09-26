@@ -21,7 +21,7 @@ export default function Verify() {
         method: 'post',
         body,
       }).then(res => {
-        setResponse(res)
+        setResponse(res.data)
       })
     }
   }, [id, token])

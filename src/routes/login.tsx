@@ -7,7 +7,7 @@ import { SocialLogin } from '#app/components.js'
 import { login as validator } from '#app/schemas.js'
 
 export default function Login() {
-  const [response, setResponse] = useState<FormResult>()
+  const [response, setResponse] = useState<FormResult<User>>()
   const auth = useAuth()
   const navigate = useNavigate()
   const [params] = useSearchParams()
@@ -23,10 +23,10 @@ export default function Login() {
           const form = validator.safeParse(Object.fromEntries(new FormData(ev.currentTarget)))
           if (!form.success) return setResponse(form.error.flatten())
           const body = new URLSearchParams(form.data)
-          const res = await api<FormResult<User>>('/login', { method: 'post', body })
-          setResponse(res)
-          if (res?.payload?.id) {
-            auth.setUser(res.payload)
+          const { data } = await api<FormResult<User>>('/login', { method: 'post', body })
+          setResponse(data)
+          if (data.payload?.id) {
+            auth.setUser(data.payload)
             navigate(params.get('redirectTo') || '/')
           }
         }}

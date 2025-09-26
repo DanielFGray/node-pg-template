@@ -22,13 +22,13 @@ export default function ResetPass() {
           const form = validator.safeParse(Object.fromEntries(new FormData(ev.currentTarget)))
           if (!form.success) return setResponse(form.error.flatten())
           const body = new URLSearchParams(form.data)
-          const res = await api<FormResult<{ user: User }>>('/reset-password', {
+          const { data } = await api<FormResult<{ user: User }>>('/reset-password', {
             method: 'post',
             body,
           })
-          setResponse(res)
-          if (res.payload?.user) {
-            auth.setUser(res.payload.user)
+          setResponse(data)
+          if (data?.payload?.user) {
+            auth.setUser(data.payload.user)
             navigate(params.get('redirectTo') || '/')
           }
         }}

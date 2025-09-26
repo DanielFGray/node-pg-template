@@ -17,8 +17,8 @@ export default function Settings() {
   if (!auth.user) throw new Error("you shouldn't be here")
   const [settings, setEmail] = useState<SettingsData>()
   async function refetch() {
-    const res = await api<FormResult<SettingsData>>('/settings')
-    setEmail(res.payload)
+    const { data } = await api<FormResult<SettingsData>>('/settings')
+    setEmail(data?.payload)
   }
   useEffect(() => {
     refetch()
@@ -48,9 +48,9 @@ export function ProfileSettings({ currentUser }: { currentUser: User }) {
         )
         if (!form.success) return setResponse(form.error.flatten())
         const body = new URLSearchParams(form.data)
-        const res = await api<FormResult<User>>('/me', { method: 'post', body })
-        setResponse(res)
-        if (res.payload) auth.setUser(res.payload)
+        const { data } = await api<FormResult<User>>('/me', { method: 'post', body })
+        setResponse(data)
+        if (data?.payload) auth.setUser(data.payload)
       }}
     >
       <fieldset>
@@ -129,8 +129,8 @@ export function PasswordSettings({
           const primaryEmail = emails.find(e => e.is_primary)?.email
           if (!primaryEmail) throw new Error('no primary email')
           const body = new URLSearchParams([['email', primaryEmail]])
-          const res = await api<FormResult>('/forgot-password', { method: 'post', body })
-          setResponse(res)
+          const { data } = await api<FormResult>('/forgot-password', { method: 'post', body })
+          setResponse(data)
         }}
       >
         <fieldset>
@@ -148,8 +148,8 @@ export function PasswordSettings({
         )
         if (!form.success) return setResponse(form.error.flatten())
         const body = new URLSearchParams(form.data)
-        const res = await api<FormResult>('/change-password', { method: 'post', body })
-        setResponse(res)
+        const { data } = await api<FormResult>('/change-password', { method: 'post', body })
+        setResponse(data)
         refetch()
       }}
       data-cy="settings-password-form"
@@ -299,21 +299,24 @@ function Email({
           const type = (ev.nativeEvent.submitter as HTMLButtonElement).getAttribute('value')
           switch (type) {
             case 'resendValidation': {
-              const res = await api<FormResult>('/resend-email-verification-code', {
+              const { data } = await api<FormResult>('/resend-email-verification-code', {
                 method: 'post',
                 body,
               })
-              setResponse(res)
+              setResponse(data)
               return refetch()
             }
             case 'deleteEmail': {
-              const res = await api<FormResult>('/settings/email', { method: 'delete', body })
-              setResponse(res)
+              const { data } = await api<FormResult>('/settings/email', { method: 'delete', body })
+              setResponse(data)
               return refetch()
             }
             case 'makePrimary': {
-              const res = await api<FormResult>('/make-email-primary', { method: 'post', body })
-              setResponse(res)
+              const { data } = await api<FormResult>('/make-email-primary', {
+                method: 'post',
+                body,
+              })
+              setResponse(data)
               return refetch()
             }
           }
@@ -387,11 +390,11 @@ function AddEmailForm({ refetch }: { refetch: () => void }) {
         const form = schemas.withEmail.safeParse(Object.fromEntries(new FormData(ev.currentTarget)))
         if (!form.success) return setResponse(form.error.flatten())
         const body = new URLSearchParams(form.data)
-        const res = await api<FormResult>('/settings/email', { method: 'post', body })
-        setResponse(res)
+        const { data } = await api<FormResult>('/settings/email', { method: 'post', body })
+        setResponse(data)
         refetch()
         ev.target.reset()
-        setShowForm(false)
+        if (!data?.formErrors && !data?.fieldErrors) setShowForm(false)
       }}
     >
       <div className="form-row">
@@ -490,12 +493,15 @@ function DeleteAccount() {
           const form = schemas.deleteUser.safeParse({ token })
           if (!form.success) return setResponse(form.error.flatten())
           const body = new URLSearchParams(form.data)
-          const res = await api<FormResult<{ confirm_account_deletion: boolean | null }>>('/me', {
-            method: 'delete',
-            body,
-          })
-          setResponse(res)
-          if (res.payload?.confirm_account_deletion) {
+          const { data } = await api<FormResult<{ confirm_account_deletion: boolean | null }>>(
+            '/me',
+            {
+              method: 'delete',
+              body,
+            },
+          )
+          setResponse(data)
+          if (data?.payload?.confirm_account_deletion) {
             navigate('/')
             setTimeout(() => {
               auth.setUser(null)
@@ -531,8 +537,8 @@ function DeleteAccount() {
     <form
       onSubmit={async ev => {
         ev.preventDefault()
-        const res = await api<FormResult>('/me', { method: 'delete' })
-        setResponse(res)
+        const { data } = await api<FormResult>('/me', { method: 'delete' })
+        setResponse(data)
       }}
     >
       <fieldset>

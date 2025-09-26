@@ -21,7 +21,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     api<FormResult<User>>('/me').then(res => {
-      setUser(res?.payload ?? null)
+      setUser(res.data.payload ?? null)
     })
   }, [])
 

@@ -9,8 +9,8 @@ export default function Home() {
   const auth = useAuth()
   const [posts, setPosts] = useState<FormResult<Post[]>>([])
   async function refetch() {
-    const res = await api<FormResult<Post[]>>('/posts')
-    setPosts(res)
+    const { data } = await api<FormResult<Post[]>>('/posts')
+    setPosts(data)
   }
   useEffect(() => {
     refetch()

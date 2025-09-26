@@ -20,8 +20,8 @@ export default function ForgotPassword() {
         const form = validator.safeParse(Object.fromEntries(new FormData(ev.currentTarget)))
         if (!form.success) return setResponse(form.error.flatten())
         const body = new URLSearchParams(form.data)
-        const res = await api<FormResult>('/forgot-password', { method: 'post', body })
-        setResponse(res)
+        const { data } = await api<FormResult>('/forgot-password', { method: 'post', body })
+        setResponse(data)
       }}
     >
       <fieldset>
